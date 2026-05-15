@@ -9,6 +9,42 @@ Redesign the Carter's Care platform based on provided design mockups, with compr
 
 ## What's Been Implemented
 
+
+### May 2025 - Compliance Framework (Current Session)
+
+#### Full Compliance Documentation Suite
+Created comprehensive compliance framework at `/app/docs/`:
+
+**Compliance Documents:**
+- `COMPLIANCE_BASELINE_REPORT.md` - Overall compliance status with APP alignment
+- `ESSENTIAL_EIGHT_CHECKLIST.md` - ASD Essential Eight Level 1 assessment
+- `DATA_BREACH_RESPONSE_PLAN.md` - NDB scheme compliance procedures
+- `RISK_REGISTER.md` - Organizational risk tracking (10 risks identified)
+- `VENDOR_RISK_REGISTER.md` - Third-party vendor assessments
+
+**Policy Documents:**
+- `PRIVACY_POLICY.md` - Australian Privacy Principles compliant
+- `DATA_RETENTION_POLICY.md` - 7-year retention for care records
+- `STAFF_SECURITY_POLICIES.md` - Acceptable use, confidentiality, onboarding
+
+**Security Documents:**
+- `SECURITY_ARCHITECTURE.md` - Full technical security architecture
+- `INCIDENT_RESPONSE_PLAN.md` - P1-P4 severity incident handling
+
+**Governance Documents:**
+- `AI_GOVERNANCE_POLICY.md` - Maureen AI assistant governance
+
+#### UI Contrast Fix (Light Mode Polish)
+- Updated table header colors from `text-slate-500` to `text-slate-700`
+- Changed background from `bg-slate-50` to `bg-slate-100/80`
+- Fixed in: ui-kit.tsx, Compliance.tsx, Invoices.tsx, MyTimesheets.tsx
+
+#### Maureen Aura Refinement
+- Aura only glows for urgent notifications (incidents, compliance alerts)
+- Stops glowing once user opens chat and acknowledges
+- Shows contextual urgent message when opened
+- Resets when new alerts appear
+
 ### April 2025 - Latest Updates (Current Session - Fork 2)
 
 #### Navigation Sidebar Cleanup

@@ -233,7 +233,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             </div>
           </main>
         </div>
-        <AIChatbot hasImportantAction={totalAlerts > 0} />
+        <AIChatbot hasImportantAction={totalAlerts > 0} urgentMessage={urgentMessage} />
       </div>
     </SidebarProvider>
   );
