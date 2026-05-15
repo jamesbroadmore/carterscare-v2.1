@@ -46,6 +46,11 @@ Redesign the Carter's Care platform based on provided design mockups, with compr
 - Click to navigate to full client management
 - Keyboard accessible with focus states
 
+#### Demo Data Removal
+- Removed hardcoded mock shifts from `MyRoster.tsx` - now fetches real timesheets from database
+- Removed simulated training completion from `StaffTraining.tsx` - now reads from compliance_records
+- Removed mock risk levels from `ClientRisk.tsx` - now calculates from real incidents and client data
+
 #### Navigation Overhaul - Staff-Friendly
 - Moved "Clients" to top of navigation with ★ badge for prominence
 - Added "Quick Actions" bar on Dashboard with 4 colorful action buttons:

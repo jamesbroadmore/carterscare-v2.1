@@ -53,10 +53,31 @@ export default function ClientRisk() {
     );
   });
 
-  // Mock risk levels
+  // Get risk level from client's risk_assessment field or incidents
+  const { data: clientIncidents = [] } = useQuery({
+    queryKey: ["client-incidents-risk"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("incidents")
+        .select("client_id, severity, status")
+        .in("status", ["open", "investigating"]);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Calculate real risk levels based on incidents and client data
   const getClientRiskLevel = (clientId: string) => {
-    const seed = clientId.charCodeAt(0) % 3;
-    return ["low", "medium", "high"][seed];
+    const client = clientsData.find((c: any) => c.id === clientId);
+    // Check for open high-severity incidents
+    const openIncidents = clientIncidents.filter((i: any) => i.client_id === clientId);
+    const hasHighSeverity = openIncidents.some((i: any) => i.severity === "high" || i.severity === "critical");
+    const hasMediumSeverity = openIncidents.some((i: any) => i.severity === "medium");
+    
+    // Also check if client has risk_assessment field
+    if (hasHighSeverity || client?.risk_assessment?.toLowerCase().includes("high")) return "high";
+    if (hasMediumSeverity || openIncidents.length > 0 || client?.risk_assessment?.toLowerCase().includes("medium")) return "medium";
+    return "low";
   };
 
   const getRiskColor = (level: string) => {

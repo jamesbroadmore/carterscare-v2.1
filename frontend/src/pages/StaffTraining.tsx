@@ -66,13 +66,29 @@ export default function StaffTraining() {
     },
   });
 
-  // Mock training completion data (in real app, this would come from database)
+  // Get training completion from database (compliance_records with type 'training')
+  const { data: trainingRecords = [] } = useQuery({
+    queryKey: ["training-records"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("compliance_records")
+        .select("staff_id, document_type, status, expiry_date")
+        .in("document_type", TRAINING_MODULES.flatMap(c => c.modules.map(m => m.name)));
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Calculate training completion from real records
   const getTrainingCompletion = (staffId: string) => {
-    // Simulate random completion for demo
-    const seed = staffId.charCodeAt(0);
     const totalRequired = TRAINING_MODULES.flatMap(c => c.modules).filter(m => m.required).length;
-    const completed = Math.floor((seed % 10) / 10 * totalRequired);
-    return { completed, total: totalRequired, percentage: Math.round((completed / totalRequired) * 100) };
+    const staffRecords = trainingRecords.filter((r: any) => r.staff_id === staffId && r.status === "current");
+    const completed = staffRecords.length;
+    return { 
+      completed: Math.min(completed, totalRequired), 
+      total: totalRequired, 
+      percentage: Math.round((Math.min(completed, totalRequired) / totalRequired) * 100) 
+    };
   };
 
   const totalModules = TRAINING_MODULES.flatMap(c => c.modules).length;

@@ -19,46 +19,50 @@ export default function MyRoster() {
   const { data: shifts = [], isLoading } = useQuery({
     queryKey: ["my-roster", user?.id, format(currentWeek, "yyyy-MM-dd")],
     queryFn: async () => {
-      // Mock shift data for demo
-      return [
-        {
-          id: "1",
-          date: format(addDays(currentWeek, 0), "yyyy-MM-dd"),
-          start_time: "08:00",
-          end_time: "14:00",
-          client_name: "Margaret Johnson",
-          location: "123 Care Street, Sydney",
-          status: "completed",
-        },
-        {
-          id: "2",
-          date: format(addDays(currentWeek, 1), "yyyy-MM-dd"),
-          start_time: "09:00",
-          end_time: "15:00",
-          client_name: "Robert Williams",
-          location: "456 Support Ave, Sydney",
-          status: "upcoming",
-        },
-        {
-          id: "3",
-          date: format(addDays(currentWeek, 2), "yyyy-MM-dd"),
-          start_time: "07:00",
-          end_time: "13:00",
-          client_name: "Patricia Brown",
-          location: "789 Health Rd, Sydney",
-          status: "upcoming",
-        },
-        {
-          id: "4",
-          date: format(addDays(currentWeek, 3), "yyyy-MM-dd"),
-          start_time: "10:00",
-          end_time: "16:00",
-          client_name: "James Davis",
-          location: "321 Wellness Lane, Sydney",
-          status: "upcoming",
-        },
-      ];
+      if (!user?.id) return [];
+      
+      // Get staff record for current user
+      const { data: staffRecord } = await supabase
+        .from("staff")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (!staffRecord) return [];
+      
+      const weekStart = format(currentWeek, "yyyy-MM-dd");
+      const weekEnd = format(addDays(currentWeek, 6), "yyyy-MM-dd");
+      
+      // Fetch timesheets/shifts for this staff member
+      const { data, error } = await supabase
+        .from("timesheets")
+        .select(`
+          id,
+          shift_date,
+          start_time,
+          end_time,
+          status,
+          client:client_id(first_name, last_name, address)
+        `)
+        .eq("staff_id", staffRecord.id)
+        .gte("shift_date", weekStart)
+        .lte("shift_date", weekEnd)
+        .order("shift_date")
+        .order("start_time");
+      
+      if (error) throw error;
+      
+      return (data || []).map((s: any) => ({
+        id: s.id,
+        date: s.shift_date,
+        start_time: s.start_time?.slice(0, 5) || "00:00",
+        end_time: s.end_time?.slice(0, 5) || "00:00",
+        client_name: s.client ? `${s.client.first_name} ${s.client.last_name}` : "Unassigned",
+        location: s.client?.address || "No address",
+        status: s.status === "approved" ? "completed" : "upcoming",
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const getShiftsForDay = (date: Date) => {
