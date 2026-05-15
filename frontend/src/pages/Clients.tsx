@@ -1,11 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Plus, MoreHorizontal, Loader2, Pencil, Trash2, UserCircle, Users } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { EditClientDialog } from "@/components/EditClientDialog";
+import { ClientWorkspaceCard } from "@/components/ClientWorkspaceCard";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fullName } from "@/lib/display-names";
@@ -46,6 +47,7 @@ export default function Clients() {
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [editClient, setEditClient] = useState<any>(null);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -156,6 +158,17 @@ export default function Clients() {
 
         <AddClientDialog open={showAdd} onClose={() => setShowAdd(false)} />
         <EditClientDialog open={!!editClient} onClose={() => setEditClient(null)} client={editClient} />
+        
+        {/* Client Workspace Card */}
+        <AnimatePresence>
+          {selectedClient && (
+            <ClientWorkspaceCard
+              client={selectedClient}
+              onClose={() => setSelectedClient(null)}
+              assignedStaff={assignmentsByClient[selectedClient.id] || []}
+            />
+          )}
+        </AnimatePresence>
 
         {isLoading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -179,18 +192,18 @@ export default function Clients() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  onClick={() => setEditClient(c)}
-                  className="rounded-2xl bg-white border border-border/50 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+                  onClick={() => setSelectedClient(c)}
+                  className="rounded-2xl bg-white border border-border/50 shadow-sm hover:shadow-lg hover:border-teal-200 transition-all overflow-hidden cursor-pointer group"
                   data-testid={`client-card-${c.id}`}
                 >
                   {/* Top accent line */}
-                  <div className="h-1" style={{ background: TABS.find(t => t.key === category)?.gradient || TABS[0].gradient }} />
+                  <div className="h-1 group-hover:h-1.5 transition-all" style={{ background: TABS.find(t => t.key === category)?.gradient || TABS[0].gradient }} />
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <Avatar name={fullName(c)} size="md" />
                         <div>
-                          <h3 className="text-sm font-bold text-foreground">{fullName(c)}</h3>
+                          <h3 className="text-sm font-bold text-foreground group-hover:text-teal-600 transition-colors">{fullName(c)}</h3>
                           {c.preferred_name && c.preferred_name !== c.first_name && (
                             <p className="text-[11px] text-muted-foreground">Legal: {c.first_name} {c.last_name}</p>
                           )}
