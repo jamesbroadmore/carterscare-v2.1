@@ -87,6 +87,8 @@ export function PrimaryButton({
   variant = "purple",
   size = "md",
   className = "",
+  "data-testid": testId,
+  "aria-label": ariaLabel,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -95,6 +97,8 @@ export function PrimaryButton({
   variant?: "purple" | "blue" | "green" | "orange" | "red" | "teal" | "pink" | "indigo";
   size?: "sm" | "md" | "lg";
   className?: string;
+  "data-testid"?: string;
+  "aria-label"?: string;
 }) {
   const gradients = {
     purple: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
@@ -113,8 +117,11 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${heights[size]} rounded-xl font-semibold text-white flex items-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 shadow-sm ${className}`}
+      aria-label={ariaLabel}
+      aria-disabled={disabled}
+      className={`${heights[size]} rounded-xl font-semibold text-white flex items-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 ${className}`}
       style={{ background: gradients[variant] }}
+      data-testid={testId}
     >
       {children}
     </button>
@@ -129,6 +136,8 @@ export function OutlineButton({
   type = "button",
   size = "md",
   className = "",
+  "data-testid": testId,
+  "aria-label": ariaLabel,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -136,6 +145,8 @@ export function OutlineButton({
   type?: "button" | "submit" | "reset";
   size?: "sm" | "md" | "lg";
   className?: string;
+  "data-testid"?: string;
+  "aria-label"?: string;
 }) {
   const heights = { sm: "h-8 px-3 text-xs", md: "h-9 px-4 text-sm", lg: "h-11 px-6 text-sm" };
   return (
@@ -143,7 +154,10 @@ export function OutlineButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${heights[size]} rounded-xl font-medium text-foreground bg-white border border-border hover:bg-secondary flex items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 ${className}`}
+      aria-label={ariaLabel}
+      aria-disabled={disabled}
+      className={`${heights[size]} rounded-xl font-medium text-foreground bg-white border border-border hover:bg-secondary flex items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 ${className}`}
+      data-testid={testId}
     >
       {children}
     </button>
@@ -207,22 +221,39 @@ export function SearchInput({
   onChange,
   placeholder = "Search...",
   className = "",
+  "data-testid": testId,
+  id,
+  "aria-label": ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   className?: string;
+  "data-testid"?: string;
+  id?: string;
+  "aria-label"?: string;
 }) {
+  const inputId = id || `search-input-${Math.random().toString(36).slice(2, 9)}`;
   return (
     <div className={`relative ${className}`}>
-      <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg 
+        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+        aria-hidden="true"
+      >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
       <input
+        id={inputId}
+        type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={ariaLabel || placeholder}
         className="w-full h-9 pl-9 pr-3 rounded-xl border border-border bg-white text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-300 transition-all"
+        data-testid={testId}
       />
     </div>
   );
@@ -262,7 +293,15 @@ export function Td({ children, className = "" }: { children: React.ReactNode; cl
 }
 
 // Avatar with initials + gradient
-export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
+export function Avatar({ 
+  name, 
+  size = "md",
+  className = "",
+}: { 
+  name: string; 
+  size?: "sm" | "md" | "lg" | "xl";
+  className?: string;
+}) {
   const colors = [
     "linear-gradient(135deg, #f472b6, #ec4899)",
     "linear-gradient(135deg, #fb923c, #f97316)",
@@ -274,12 +313,19 @@ export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md"
   ];
   const initials = (name || "??").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const colorIdx = (name || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
-  const sizes = { sm: "h-7 w-7 text-[10px]", md: "h-9 w-9 text-xs", lg: "h-11 w-11 text-sm" };
+  const sizes = { 
+    sm: "h-7 w-7 text-[10px]", 
+    md: "h-9 w-9 text-xs", 
+    lg: "h-11 w-11 text-sm",
+    xl: "h-14 w-14 text-base",
+  };
 
   return (
     <div
-      className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm`}
+      className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm ${className}`}
       style={{ background: colors[colorIdx] }}
+      role="img"
+      aria-label={`Avatar for ${name}`}
     >
       {initials}
     </div>

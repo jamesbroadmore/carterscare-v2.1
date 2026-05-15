@@ -35,6 +35,7 @@ function StatCard({
   gradient,
   icon: Icon,
   href,
+  testId,
 }: {
   label: string;
   value: number | string;
@@ -42,6 +43,7 @@ function StatCard({
   gradient: string;
   icon: any;
   href?: string;
+  testId?: string;
 }) {
   const navigate = useNavigate();
   return (
@@ -49,12 +51,18 @@ function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={href ? () => navigate(href) : undefined}
-      className={`relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-border/50 flex items-center gap-4 ${href ? "cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" : ""}`}
+      onKeyDown={href ? (e) => e.key === 'Enter' && navigate(href) : undefined}
+      tabIndex={href ? 0 : undefined}
+      role={href ? "button" : undefined}
+      aria-label={href ? `${label}: ${value}. Click to view details.` : `${label}: ${value}`}
+      className={`relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-border/50 flex items-center gap-4 ${href ? "cursor-pointer hover:shadow-md hover:border-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50" : ""}`}
+      data-testid={testId || `stat-card-${label.toLowerCase().replace(/\s+/g, '-')}`}
     >
       {/* Icon box */}
       <div
         className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md"
         style={{ background: gradient }}
+        aria-hidden="true"
       >
         <Icon className="h-6 w-6 text-white" />
       </div>
@@ -64,7 +72,7 @@ function StatCard({
         {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </div>
       {href && (
-        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
       )}
     </motion.div>
   );
@@ -197,7 +205,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Top Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="region" aria-label="Key metrics">
           <StatCard
             label="Staff on Shift"
             value={todayCheckins}
@@ -205,6 +213,7 @@ export default function Dashboard() {
             gradient="linear-gradient(135deg, #a78bfa, #8b5cf6)"
             icon={Users}
             href="/check-in"
+            testId="dashboard-staff-on-shift"
           />
           <StatCard
             label="Active Staff"
@@ -213,6 +222,7 @@ export default function Dashboard() {
             gradient="linear-gradient(135deg, #60a5fa, #3b82f6)"
             icon={UserCircle}
             href="/staff"
+            testId="dashboard-active-staff"
           />
           <StatCard
             label={`Alert${totalAlerts !== 1 ? "s" : ""}`}
@@ -221,19 +231,25 @@ export default function Dashboard() {
             gradient={totalAlerts > 0 ? "linear-gradient(135deg, #fb923c, #f97316)" : "linear-gradient(135deg, #4ade80, #22c55e)"}
             icon={totalAlerts > 0 ? AlertTriangle : ShieldCheck}
             href="/compliance"
+            testId="dashboard-alerts"
           />
         </div>
 
         {/* Secondary Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" role="region" aria-label="Secondary metrics">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
             onClick={() => navigate("/clients")}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all"
+            onKeyDown={(e) => e.key === 'Enter' && navigate("/clients")}
+            tabIndex={0}
+            role="button"
+            aria-label={`${clientCount} Active Clients. Click to view.`}
+            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+            data-testid="dashboard-active-clients"
           >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #2dd4bf, #14b8a6)" }}>
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #2dd4bf, #14b8a6)" }} aria-hidden="true">
               <UserCircle className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -247,9 +263,14 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
             onClick={() => navigate("/case-notes")}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all"
+            onKeyDown={(e) => e.key === 'Enter' && navigate("/case-notes")}
+            tabIndex={0}
+            role="button"
+            aria-label={`${todayNotes} Notes Today. Click to view.`}
+            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+            data-testid="dashboard-notes-today"
           >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)" }}>
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)" }} aria-hidden="true">
               <FileText className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -263,9 +284,14 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             onClick={() => navigate("/incidents")}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all"
+            onKeyDown={(e) => e.key === 'Enter' && navigate("/incidents")}
+            tabIndex={0}
+            role="button"
+            aria-label={`${openIncidents} Open Incidents. Click to view.`}
+            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+            data-testid="dashboard-open-incidents"
           >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: openIncidents > 0 ? "linear-gradient(135deg, #f87171, #ef4444)" : "linear-gradient(135deg, #4ade80, #22c55e)" }}>
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: openIncidents > 0 ? "linear-gradient(135deg, #f87171, #ef4444)" : "linear-gradient(135deg, #4ade80, #22c55e)" }} aria-hidden="true">
               <AlertTriangle className="h-5 w-5 text-white" />
             </div>
             <div>

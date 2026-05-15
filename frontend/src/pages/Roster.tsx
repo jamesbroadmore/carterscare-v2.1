@@ -110,29 +110,34 @@ export default function Roster() {
     <AppLayout title="Roster">
       <div className="space-y-4">
         {/* Week navigator */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" role="navigation" aria-label="Week navigation">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((w) => w - 1)}
-              className="h-9 w-9 rounded-xl border bg-white flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors shadow-sm"
+              className="h-9 w-9 rounded-xl border bg-white flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              aria-label="Previous week"
+              data-testid="roster-prev-week-btn"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <div className="bg-white border border-border rounded-xl px-4 py-2 shadow-sm">
+            <div className="bg-white border border-border rounded-xl px-4 py-2 shadow-sm" data-testid="roster-week-display">
               <span className="text-sm font-semibold text-foreground">
                 {format(currentWeekStart, "MMM d")} – {format(currentWeekEnd, "MMM d, yyyy")}
               </span>
             </div>
             <button
               onClick={() => setWeekOffset((w) => w + 1)}
-              className="h-9 w-9 rounded-xl border bg-white flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors shadow-sm"
+              className="h-9 w-9 rounded-xl border bg-white flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              aria-label="Next week"
+              data-testid="roster-next-week-btn"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
             {weekOffset !== 0 && (
               <button
                 onClick={() => setWeekOffset(0)}
-                className="h-9 px-3 rounded-xl text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
+                className="h-9 px-3 rounded-xl text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400"
+                data-testid="roster-today-btn"
               >
                 Today
               </button>
@@ -141,8 +146,9 @@ export default function Roster() {
           {isAdmin && (
             <button
               onClick={() => setRosterDialog({ date: getPerthDate(), hour: new Date().getHours() })}
-              className="h-9 px-4 rounded-xl text-sm font-semibold text-white flex items-center gap-2 shadow-md transition-all hover:opacity-90"
+              className="h-9 px-4 rounded-xl text-sm font-semibold text-white flex items-center gap-2 shadow-md transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-orange-400"
               style={{ background: "linear-gradient(135deg, #fb923c, #f97316)" }}
+              data-testid="roster-new-shift-btn"
             >
               <Plus className="h-4 w-4" /> New Shift
             </button>

@@ -69,11 +69,13 @@ export default function Invoices() {
     <AppLayout title="Invoices">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{invoices.length} invoices</p>
+          <p className="text-sm text-muted-foreground" data-testid="invoices-count">{invoices.length} invoices</p>
           <button onClick={() => setShowCreate(true)}
-            className="h-9 px-4 rounded-xl text-white text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-md"
-            style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)" }}>
-            <Plus className="h-4 w-4" /> New Invoice
+            className="h-9 px-4 rounded-xl text-white text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)" }}
+            data-testid="invoices-new-btn"
+            aria-label="Create new invoice">
+            <Plus className="h-4 w-4" aria-hidden="true" /> New Invoice
           </button>
         </div>
 

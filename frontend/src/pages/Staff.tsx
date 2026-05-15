@@ -64,9 +64,9 @@ export default function Staff() {
     <AppLayout title="Staff">
       <div className="space-y-5">
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #a78bfa, #8b5cf6)" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4" role="region" aria-label="Staff statistics">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3" data-testid="staff-total-count">
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #a78bfa, #8b5cf6)" }} aria-hidden="true">
               <Users className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -74,8 +74,8 @@ export default function Staff() {
               <p className="text-xs text-muted-foreground">Total Staff</p>
             </div>
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3" data-testid="staff-active-count">
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }} aria-hidden="true">
               <CheckCircle className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -83,8 +83,8 @@ export default function Staff() {
               <p className="text-xs text-muted-foreground">Active</p>
             </div>
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 hidden sm:flex">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #94a3b8, #64748b)" }}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3 hidden sm:flex" data-testid="staff-inactive-count">
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #94a3b8, #64748b)" }} aria-hidden="true">
               <XCircle className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -96,8 +96,8 @@ export default function Staff() {
 
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search staff..." className="w-full sm:w-72" />
-          <PrimaryButton onClick={() => setShowAdd(true)} variant="purple">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search staff..." className="w-full sm:w-72" data-testid="staff-search-input" />
+          <PrimaryButton onClick={() => setShowAdd(true)} variant="purple" data-testid="add-staff-btn">
             <Plus className="h-4 w-4" /> Add Staff
           </PrimaryButton>
         </div>

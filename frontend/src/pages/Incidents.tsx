@@ -75,17 +75,19 @@ export default function Incidents() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <p className="text-sm text-muted-foreground">{incidents.length} incidents</p>
+            <p className="text-sm text-muted-foreground" data-testid="incidents-count">{incidents.length} incidents</p>
             <span className="text-xs text-muted-foreground bg-white border border-border px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
-              <Lock className="h-3 w-3" /> Immutable after submission
+              <Lock className="h-3 w-3" aria-hidden="true" /> Immutable after submission
             </span>
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="h-9 px-4 rounded-xl text-white text-sm font-bold flex items-center gap-2 shadow-md hover:opacity-90 transition-all"
+            className="h-9 px-4 rounded-xl text-white text-sm font-bold flex items-center gap-2 shadow-md hover:opacity-90 transition-all focus:outline-none focus:ring-2 focus:ring-red-400"
             style={{ background: "linear-gradient(135deg, #f87171, #ef4444)" }}
+            data-testid="incidents-report-btn"
+            aria-label="Report a new incident"
           >
-            <Plus className="h-4 w-4" /> Report Incident
+            <Plus className="h-4 w-4" aria-hidden="true" /> Report Incident
           </button>
         </div>
 
