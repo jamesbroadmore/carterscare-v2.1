@@ -1,11 +1,12 @@
 import { AppLayout } from "@/components/AppLayout";
-import { Users, UserCircle, CalendarDays, AlertTriangle, ShieldCheck, FileText, Loader2, ChevronRight, Clock, TrendingUp } from "lucide-react";
+import { Users, UserCircle, CalendarDays, AlertTriangle, ShieldCheck, FileText, Loader2, ChevronRight, Clock, TrendingUp, Phone, MapPin, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPerthGreeting, getPerthDate, formatPerthTime } from "@/lib/perth-time";
 import { useNavigate } from "react-router-dom";
+import { fullName } from "@/lib/display-names";
 
 // Generate avatar initials + color from name
 function getAvatarProps(name: string) {
@@ -170,6 +171,20 @@ export default function Dashboard() {
         .order("shift_date")
         .order("start_time")
         .limit(5);
+      return data ?? [];
+    },
+  });
+
+  // Fetch recent clients for dashboard cards
+  const { data: recentClients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ["dashboard-recent-clients"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, preferred_name, phone, address, status, ndis_number, funding_type")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(6);
       return data ?? [];
     },
   });
@@ -440,7 +455,7 @@ export default function Dashboard() {
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {c.status === "checked_in" ? "Active" : "Done"}
+                                        {c.status === "checked_in" ? "Active" : "Done"}
                       </span>
                     </div>
                   );
@@ -449,6 +464,105 @@ export default function Dashboard() {
             )}
           </motion.div>
         </div>
+
+        {/* Client Cards Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="rounded-2xl bg-white border border-border/50 shadow-sm overflow-hidden"
+          data-testid="dashboard-client-cards"
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #2dd4bf, #14b8a6)" }}>
+                <Heart className="h-3.5 w-3.5 text-white" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">Active Clients</h3>
+              <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full">{clientCount}</span>
+            </div>
+            <button
+              onClick={() => navigate("/clients")}
+              className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+              data-testid="dashboard-view-all-clients"
+            >
+              View All <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+
+          {clientsLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : recentClients.length === 0 ? (
+            <div className="py-10 text-center">
+              <UserCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No clients found</p>
+              <p className="text-xs text-muted-foreground mt-1">Add your first client to get started</p>
+            </div>
+          ) : (
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {recentClients.map((client: any, i: number) => {
+                const clientName = fullName(client);
+                const avatarProps = getAvatarProps(clientName);
+                return (
+                  <motion.div
+                    key={client.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.02 * i }}
+                    onClick={() => navigate("/clients")}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate("/clients")}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`View ${clientName}'s profile`}
+                    className="rounded-xl border border-border/50 bg-gradient-to-br from-white to-slate-50 p-4 cursor-pointer hover:shadow-md hover:border-teal-200 transition-all focus:outline-none focus:ring-2 focus:ring-teal-400/50"
+                    data-testid={`client-card-${client.id}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm"
+                        style={{ background: avatarProps.color }}
+                      >
+                        {avatarProps.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{clientName}</p>
+                        {client.ndis_number && (
+                          <p className="text-[10px] text-teal-600 font-medium">NDIS: {client.ndis_number}</p>
+                        )}
+                        {client.funding_type && !client.ndis_number && (
+                          <p className="text-[10px] text-muted-foreground capitalize">{client.funding_type.replace(/_/g, " ")}</p>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 shrink-0">
+                        Active
+                      </span>
+                    </div>
+                    
+                    <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+                      {client.phone && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3 text-slate-400" />
+                          <span className="truncate">{client.phone}</span>
+                        </div>
+                      )}
+                      {client.address && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3 text-slate-400" />
+                          <span className="truncate">{client.address}</span>
+                        </div>
+                      )}
+                      {!client.phone && !client.address && (
+                        <p className="text-xs text-muted-foreground italic">No contact info</p>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
       </div>
     </AppLayout>
   );

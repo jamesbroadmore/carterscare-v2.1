@@ -33,6 +33,19 @@ Redesign the Carter's Care platform based on provided design mockups, with compr
 - Enhanced component prop types for better testability
 - Added data-testid to Dashboard, Staff, Roster, Invoices, Incidents pages
 
+#### Vercel Deployment Ready
+- Updated `vercel.json` with yarn build commands
+- Added Referrer-Policy security header
+- Updated `VERCEL_DEPLOYMENT.md` with comprehensive guide
+- Quick deploy checklist included
+
+#### Dashboard Client Cards
+- Added "Active Clients" section to Dashboard with client cards
+- Cards show client name, NDIS number, phone, address
+- Responsive grid layout (1/2/3 columns)
+- Click to navigate to full client management
+- Keyboard accessible with focus states
+
 ### May 2025 - Client Dashboard Responsive Update
 
 #### Client Dashboard Dynamic Sizing & Collapsible Panel
