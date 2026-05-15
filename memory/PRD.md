@@ -10,7 +10,20 @@ Redesign the Carter's Care platform based on provided design mockups, with compr
 ## What's Been Implemented
 
 
-### May 2025 - Compliance Framework (Current Session)
+### May 2025 - Client Dashboard Responsive Update (Current Session)
+
+#### Client Dashboard Dynamic Sizing & Collapsible Panel
+- Implemented responsive split-view layout for `/clients` page
+- Left client list panel now collapsible with toggle button
+- Auto-collapses on mobile/tablet after client selection for better UX
+- Panel state persisted in localStorage for user preference
+- Mobile view: Stacked layout with floating "Clients" button when collapsed
+- Tablet view: Responsive grids, scrollable tab bar
+- Desktop view: Side-by-side split view with full workspace
+- All tabs (Overview, Care Plan, Schedule, Notes, Documents) now fully responsive
+- Added data-testid attributes for testing key elements
+
+### May 2025 - Compliance Framework
 
 #### Full Compliance Documentation Suite
 Created comprehensive compliance framework at `/app/docs/`:
@@ -258,10 +271,13 @@ Created comprehensive compliance framework at `/app/docs/`:
 
 ### P0 - Critical (User Action Required)
 - Run Supabase SQL scripts from `/app/frontend/supabase_setup.md`
+- Provide test user credentials to verify authenticated flows
 
 ### P1 - High Priority
+- Stripe webhook → auto-mark invoice paid on payment success
+- Test notifications and HR document uploads (requires test login)
+- Test full client workflow with authenticated session
 - Connect training modules to actual LMS/training provider
-- Test notifications with real Supabase table
 
 ### P2 - Medium Priority
 - Email notifications for timesheet approvals (SendGrid/Resend)
@@ -271,3 +287,4 @@ Created comprehensive compliance framework at `/app/docs/`:
 - Dark mode support
 - Offline support for check-in/out
 - Export timesheets/invoices to PDF
+- Full multi-tenant schema migration (audit report complete)
