@@ -12,6 +12,8 @@ import {
   LogOut,
   ChevronDown,
   Briefcase,
+  Heart,
+  FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -30,6 +32,7 @@ type NavItem = {
   icon: any;
   adminOnly: boolean;
   iconClass: string;
+  badge?: string;
 };
 
 type NavGroup = {
@@ -40,27 +43,28 @@ type NavGroup = {
   items: NavItem[];
 };
 
-// Simplified workflow-oriented navigation
+// Staff-friendly navigation - Clients prominently at top
 const navGroups: NavGroup[] = [
   {
-    label: "Overview",
+    label: "Quick Access",
     items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard, adminOnly: true, iconClass: "icon-purple" },
+      { title: "Dashboard", url: "/", icon: LayoutDashboard, adminOnly: false, iconClass: "icon-purple" },
+      { title: "Clients", url: "/clients", icon: Heart, adminOnly: false, iconClass: "icon-teal", badge: "★" },
     ],
   },
   {
-    label: "Daily Workflow",
+    label: "Daily Tasks",
     collapsible: true,
     defaultExpanded: true,
     items: [
-      { title: "Roster", url: "/roster", icon: CalendarDays, adminOnly: false, iconClass: "icon-blue" },
+      { title: "Roster", url: "/roster", icon: CalendarDays, adminOnly: false, iconClass: "icon-orange" },
       { title: "Timesheets", url: "/timesheets", icon: Clock, adminOnly: false, iconClass: "icon-yellow" },
-      { title: "Client Notes", url: "/clients", icon: UserCircle, adminOnly: false, iconClass: "icon-teal" },
-      { title: "Incidents", url: "/incidents", icon: AlertTriangle, adminOnly: false, iconClass: "icon-orange" },
+      { title: "Case Notes", url: "/case-notes", icon: FileText, adminOnly: false, iconClass: "icon-blue" },
+      { title: "Incidents", url: "/incidents", icon: AlertTriangle, adminOnly: false, iconClass: "icon-red" },
     ],
   },
   {
-    label: "My Tasks",
+    label: "My Work",
     collapsible: true,
     defaultExpanded: true,
     items: [
@@ -238,15 +242,20 @@ export function AppSidebar() {
                         </div>
 
                         {!collapsed && (
-                          <span
-                            className={`text-[13px] truncate ${
-                              isActive
-                                ? "text-purple-700 font-semibold"
-                                : "text-slate-600 group-hover:text-slate-800 font-medium"
-                            }`}
-                          >
-                            {item.title}
-                          </span>
+                          <div className="flex items-center justify-between flex-1 min-w-0">
+                            <span
+                              className={`text-[13px] truncate ${
+                                isActive
+                                  ? "text-purple-700 font-semibold"
+                                  : "text-slate-600 group-hover:text-slate-800 font-medium"
+                              }`}
+                            >
+                              {item.title}
+                            </span>
+                            {item.badge && (
+                              <span className="text-[10px] text-amber-500 font-bold ml-1">{item.badge}</span>
+                            )}
+                          </div>
                         )}
                       </NavLink>
                     );

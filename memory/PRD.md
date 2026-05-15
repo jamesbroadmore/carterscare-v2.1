@@ -46,6 +46,17 @@ Redesign the Carter's Care platform based on provided design mockups, with compr
 - Click to navigate to full client management
 - Keyboard accessible with focus states
 
+#### Navigation Overhaul - Staff-Friendly
+- Moved "Clients" to top of navigation with ★ badge for prominence
+- Added "Quick Actions" bar on Dashboard with 4 colorful action buttons:
+  - View Clients (teal)
+  - Today's Roster (orange)
+  - Timesheets (yellow)
+  - Case Notes (blue)
+- Reorganized nav groups: Quick Access → Daily Tasks → My Work → Admin
+- Added red and slate icon color classes
+- Dashboard now accessible to all users (not admin-only)
+
 ### May 2025 - Client Dashboard Responsive Update
 
 #### Client Dashboard Dynamic Sizing & Collapsible Panel

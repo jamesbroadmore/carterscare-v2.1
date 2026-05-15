@@ -219,6 +219,50 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
+        {/* Quick Actions Bar - Easy staff access */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.02 }}
+          className="flex flex-wrap gap-2"
+          role="navigation"
+          aria-label="Quick actions"
+          data-testid="dashboard-quick-actions"
+        >
+          <button
+            onClick={() => navigate("/clients")}
+            className="flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all focus:outline-none focus:ring-2 focus:ring-teal-400"
+            data-testid="quick-action-clients"
+          >
+            <Heart className="h-4 w-4" />
+            View Clients
+          </button>
+          <button
+            onClick={() => navigate("/roster")}
+            className="flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all focus:outline-none focus:ring-2 focus:ring-orange-400"
+            data-testid="quick-action-roster"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Today's Roster
+          </button>
+          <button
+            onClick={() => navigate("/timesheets")}
+            className="flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-400 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            data-testid="quick-action-timesheets"
+          >
+            <Clock className="h-4 w-4" />
+            Timesheets
+          </button>
+          <button
+            onClick={() => navigate("/case-notes")}
+            className="flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-blue-400 to-indigo-500 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
+            data-testid="quick-action-notes"
+          >
+            <FileText className="h-4 w-4" />
+            Case Notes
+          </button>
+        </motion.div>
+
         {/* Top Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="region" aria-label="Key metrics">
           <StatCard
