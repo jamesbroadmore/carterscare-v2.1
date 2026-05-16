@@ -1,0 +1,1 @@
+ALTER TABLE public.staff ADD COLUMN preferred_name text;
