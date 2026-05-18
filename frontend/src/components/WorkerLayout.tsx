@@ -97,8 +97,8 @@ export function WorkerLayout({
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <img src={cartersIcon} alt="Carter's Care" className="h-8 w-8 rounded-xl shadow-sm" />
-              <span className="text-sm font-black text-slate-700 tracking-tight">Carter's Care</span>
+              <img src={cartersIcon} alt="Carters Care" className="h-8 w-8 rounded-xl shadow-sm" />
+              <span className="text-sm font-black text-slate-700 tracking-tight">Carters Care</span>
             </div>
           )}
 

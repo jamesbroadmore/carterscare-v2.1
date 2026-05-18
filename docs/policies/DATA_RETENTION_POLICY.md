@@ -1,6 +1,6 @@
 # Data Retention & Deletion Policy
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Effective Date:** April 2025
 
@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-This policy defines retention periods and deletion procedures for all data categories within the Carter's Care Platform, ensuring compliance with Australian privacy law while meeting operational and legal requirements.
+This policy defines retention periods and deletion procedures for all data categories within the Carters Care Platform, ensuring compliance with Australian privacy law while meeting operational and legal requirements.
 
 ---
 

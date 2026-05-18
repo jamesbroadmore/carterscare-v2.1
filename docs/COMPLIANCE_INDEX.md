@@ -1,4 +1,4 @@
-# Carter's Care Platform - Compliance Documentation Index
+# Carters Care Platform - Compliance Documentation Index
 
 **Version:** 1.0  
 **Last Updated:** April 2025
@@ -7,7 +7,7 @@
 
 ## Document Overview
 
-This index provides a complete listing of all compliance, security, and governance documentation for the Carter's Care Platform.
+This index provides a complete listing of all compliance, security, and governance documentation for the Carters Care Platform.
 
 ---
 

@@ -1,6 +1,6 @@
 # Staff Security Policy Pack
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Effective Date:** April 2025
 
@@ -18,7 +18,7 @@
 # 1. Acceptable Use Policy
 
 ## Purpose
-This policy defines acceptable use of the Carter's Care Platform and related technology resources.
+This policy defines acceptable use of the Carters Care Platform and related technology resources.
 
 ## Scope
 All employees, contractors, and authorized users of the platform.
@@ -80,7 +80,7 @@ I have read and understand this Acceptable Use Policy.
 # 2. Confidentiality Agreement
 
 ## Purpose
-To protect sensitive information accessed through the Carter's Care Platform.
+To protect sensitive information accessed through the Carters Care Platform.
 
 ## Agreement
 

@@ -1,7 +1,7 @@
-# Carter's Care Group Platform - PRD
+# Carters Care Group Platform - PRD
 
 ## Original Problem Statement
-Redesign the Carter's Care platform based on provided design mockups, with comprehensive portal upgrades.
+Redesign the Carters Care platform based on provided design mockups, with comprehensive portal upgrades.
 
 ## User Personas
 1. **Admin Users**: Manage staff, clients, roster, compliance, financials, reports

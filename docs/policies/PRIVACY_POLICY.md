@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Effective Date:** April 2025  
 **Last Updated:** April 2025
 
@@ -8,7 +8,7 @@
 
 ## 1. Introduction
 
-Carter's Care ("we", "us", "our") operates a care management platform for aged care and disability service providers in Australia. This Privacy Policy explains how we collect, use, disclose, and protect personal information in accordance with the Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).
+Carters Care ("we", "us", "our") operates a care management platform for aged care and disability service providers in Australia. This Privacy Policy explains how we collect, use, disclose, and protect personal information in accordance with the Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).
 
 ---
 
@@ -150,7 +150,7 @@ We may update this Privacy Policy periodically. Significant changes will be comm
 ## 12. Contact Us
 
 **Privacy Officer**  
-Carter's Care  
+Carters Care  
 Email: privacy@carterscare.com.au  
 Phone: [Insert Phone]  
 Address: [Insert Address]

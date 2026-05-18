@@ -1,4 +1,4 @@
-# Carter's Care Platform - Compliance Baseline Report
+# Carters Care Platform - Compliance Baseline Report
 
 **Document Version:** 1.0  
 **Last Updated:** April 2025  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-This document outlines the compliance baseline for the Carter's Care Platform, a software-as-a-service (SaaS) solution designed for Australian aged care and NDIS disability service providers.
+This document outlines the compliance baseline for the Carters Care Platform, a software-as-a-service (SaaS) solution designed for Australian aged care and NDIS disability service providers.
 
 ### Compliance Scope
 - Australian Privacy Principles (APPs)

@@ -1,6 +1,6 @@
 # Security Architecture Document
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Classification:** Confidential  
 **Last Updated:** April 2025

@@ -1,6 +1,6 @@
 # Data Breach Response Plan
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Effective Date:** April 2025  
 **Review Cycle:** Annual
@@ -9,16 +9,16 @@
 
 ## 1. Purpose
 
-This plan establishes procedures for identifying, containing, assessing, and responding to data breaches affecting the Carter's Care Platform, in compliance with the Notifiable Data Breaches (NDB) scheme under the Privacy Act 1988 (Cth).
+This plan establishes procedures for identifying, containing, assessing, and responding to data breaches affecting the Carters Care Platform, in compliance with the Notifiable Data Breaches (NDB) scheme under the Privacy Act 1988 (Cth).
 
 ---
 
 ## 2. Scope
 
 This plan applies to:
-- All personal information held by Carter's Care
+- All personal information held by Carters Care
 - All staff, contractors, and third-party providers
-- All systems and platforms operated by Carter's Care
+- All systems and platforms operated by Carters Care
 
 ---
 
@@ -122,7 +122,7 @@ Include:
 
 **Template:**
 ```
-Subject: Important Privacy Notice from Carter's Care
+Subject: Important Privacy Notice from Carters Care
 
 Dear [Name],
 
@@ -139,7 +139,7 @@ What you can do: [Recommendations]
 We sincerely apologize for any concern this may cause. If you have questions, please contact us at privacy@carterscare.com.au or [phone].
 
 Regards,
-Carter's Care Privacy Team
+Carters Care Privacy Team
 ```
 
 #### 3.3 NDIS Commission Notification (if applicable)

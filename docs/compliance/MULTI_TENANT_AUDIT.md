@@ -1,6 +1,6 @@
 # Multi-Tenant Audit Report
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Date:** May 2025  
 **Status:** Single-Tenant Architecture
 

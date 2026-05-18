@@ -1,6 +1,6 @@
 # Incident Response Plan
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Effective Date:** April 2025
 
@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-This plan establishes procedures for responding to security incidents affecting the Carter's Care Platform, ensuring rapid containment, appropriate escalation, and regulatory compliance.
+This plan establishes procedures for responding to security incidents affecting the Carters Care Platform, ensuring rapid containment, appropriate escalation, and regulatory compliance.
 
 ---
 

@@ -27,7 +27,7 @@ import cartersIcon from "@/assets/icon.png";
 // Flower/pinwheel SVG logo component
 function FlowerLogo({ size = 28 }: { size?: number }) {
   return (
-    <img src={cartersIcon} alt="Carter's Care" style={{ width: size, height: size }} className="rounded-lg" />
+    <img src={cartersIcon} alt="Carters Care" style={{ width: size, height: size }} className="rounded-lg" />
   );
 }
 
@@ -227,7 +227,7 @@ export default function WorkerHome() {
         <div className="flex items-center gap-2">
           <FlowerLogo size={32} />
           <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Carter's Care</p>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Carters Care</p>
           </div>
         </div>
         <button

@@ -1,6 +1,6 @@
 # Vendor Risk Register
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Last Updated:** April 2025
 

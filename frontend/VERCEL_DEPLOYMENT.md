@@ -1,4 +1,4 @@
-# Carter's Care Platform - Vercel Deployment Guide
+# Carters Care Platform - Vercel Deployment Guide
 
 ## Overview
 This is a React/Vite frontend application that connects to Supabase for authentication and data storage. The platform is optimized for production deployment on Vercel.

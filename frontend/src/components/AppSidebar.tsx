@@ -173,7 +173,7 @@ export function AppSidebar() {
         />
         {!collapsed && (
           <div className="flex flex-col leading-tight">
-            <span className="text-base sm:text-lg md:text-xl font-bold text-slate-800">Carter's Care</span>
+            <span className="text-base sm:text-lg md:text-xl font-bold text-slate-800">Carters Care</span>
             <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium uppercase tracking-wider">Platform</span>
           </div>
         )}

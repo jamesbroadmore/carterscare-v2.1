@@ -84,7 +84,7 @@ export default function Login() {
           <div className="flex items-center justify-center gap-4 mb-8">
             <img src={cartersIcon} alt="" className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 rounded-2xl shadow-xl" loading="lazy" />
             <div className="text-left">
-              <h1 className="text-4xl sm:text-5xl font-black text-slate-800 leading-tight">Carter's</h1>
+              <h1 className="text-4xl sm:text-5xl font-black text-slate-800 leading-tight">Carters</h1>
               <h1 className="text-4xl sm:text-5xl font-black leading-tight" style={{ background: "linear-gradient(135deg, #8b5cf6, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Care</h1>
             </div>
           </div>
@@ -124,7 +124,7 @@ export default function Login() {
             <div className="p-8">
               <div className="mb-7">
                 <h2 className="text-2xl font-bold text-slate-800" data-testid="login-title">Welcome back</h2>
-                <p className="text-sm text-slate-500 mt-1">Sign in to your Carter's Care account</p>
+                <p className="text-sm text-slate-500 mt-1">Sign in to your Carters Care account</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">

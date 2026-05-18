@@ -1,6 +1,6 @@
 # Essential Eight Alignment Checklist
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Assessment Date:** April 2025  
 **Target Maturity Level:** Level 1
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Essential Eight is a set of baseline mitigation strategies from the Australian Signals Directorate (ASD) designed to help organisations protect against cyber threats. This checklist assesses the Carter's Care Platform against Essential Eight Level 1 requirements.
+The Essential Eight is a set of baseline mitigation strategies from the Australian Signals Directorate (ASD) designed to help organisations protect against cyber threats. This checklist assesses the Carters Care Platform against Essential Eight Level 1 requirements.
 
 ---
 
@@ -277,7 +277,7 @@ For staff accessing the platform, recommend:
 
 ## Certification Statement
 
-This assessment confirms the Carter's Care Platform architecture aligns with ASD Essential Eight Level 1 requirements through use of managed cloud infrastructure and appropriate security controls.
+This assessment confirms the Carters Care Platform architecture aligns with ASD Essential Eight Level 1 requirements through use of managed cloud infrastructure and appropriate security controls.
 
 **Assessed by:** [Name]  
 **Date:** April 2025  

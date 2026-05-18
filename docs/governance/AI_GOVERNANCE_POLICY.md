@@ -1,6 +1,6 @@
 # AI Governance Policy
 
-**Carter's Care Platform**  
+**Carters Care Platform**  
 **Version:** 1.0  
 **Effective Date:** April 2025  
 **Classification:** Internal
@@ -9,7 +9,7 @@
 
 ## 1. Purpose
 
-This policy establishes governance requirements for artificial intelligence (AI) and machine learning (ML) features within the Carter's Care Platform, ensuring ethical use, human oversight, and regulatory compliance in the aged care and disability services context.
+This policy establishes governance requirements for artificial intelligence (AI) and machine learning (ML) features within the Carters Care Platform, ensuring ethical use, human oversight, and regulatory compliance in the aged care and disability services context.
 
 ---
 
