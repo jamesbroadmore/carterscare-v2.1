@@ -1,9 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { Loader2, Download, Printer, Shield, CheckCircle, XCircle } from "lucide-react";
+import { format, parseISO, getDay } from "date-fns";
+import { Loader2, Printer } from "lucide-react";
 import { useRef } from "react";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -13,20 +14,58 @@ interface Props {
   onStatusChange: (status: string) => void;
 }
 
+function dayLabel(dateStr: string): string {
+  const d = getDay(parseISO(dateStr));
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d];
+}
+
+function fmt12h(t: string): string {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h < 12 ? "am" : "pm";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${m.toString().padStart(2, "0")}${ampm}`;
+}
+
+// Parse service info from description: "Service Type | 9:00am - 11:00am"
+function parseLineItem(item: any): { serviceType: string; timeRange: string } {
+  const desc: string = item.description || "";
+  const pipeIdx = desc.indexOf("|");
+  if (pipeIdx > -1) {
+    return {
+      serviceType: desc.slice(0, pipeIdx).trim(),
+      timeRange: desc.slice(pipeIdx + 1).trim(),
+    };
+  }
+  return { serviceType: desc, timeRange: "" };
+}
+
+function groupByDate(items: any[]): Map<string, any[]> {
+  const map = new Map<string, any[]>();
+  for (const item of items) {
+    const d = item.service_date || "";
+    if (!map.has(d)) map.set(d, []);
+    map.get(d)!.push(item);
+  }
+  return map;
+}
+
 export function ViewInvoiceDialog({ open, onClose, invoiceId, isAdmin, onStatusChange }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const { data: invoice, isLoading } = useQuery({
     queryKey: ["invoice-detail", invoiceId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*, staff:staff_id(first_name, last_name, email, phone, address)")
+        .select("*")
         .eq("id", invoiceId)
         .single();
       if (error) throw error;
       return data;
     },
+    enabled: !!invoiceId,
   });
 
   const { data: lineItems = [] } = useQuery({
@@ -34,62 +73,165 @@ export function ViewInvoiceDialog({ open, onClose, invoiceId, isAdmin, onStatusC
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoice_line_items")
-        .select("*, client:client_id(first_name, last_name)")
+        .select("*, client:client_id(first_name, last_name, plan_manager, address, suburb, state, postcode)")
         .eq("invoice_id", invoiceId)
         .order("service_date");
       if (error) throw error;
       return data;
     },
+    enabled: !!invoiceId,
   });
 
-  const { data: validations = [] } = useQuery({
-    queryKey: ["billing-validations", invoiceId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billing_validations")
-        .select("*")
-        .eq("invoice_id", invoiceId)
-        .order("created_at");
+  const statusMutation = useMutation({
+    mutationFn: async (status: string) => {
+      const { error } = await supabase.from("invoices").update({ status }).eq("id", invoiceId);
       if (error) throw error;
-      return data;
     },
+    onSuccess: (_: any, status: string) => {
+      toast.success(`Invoice marked as ${status}`);
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-detail", invoiceId] });
+      onStatusChange(status);
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
-  const { data: orgSettings = [] } = useQuery({
-    queryKey: ["org-settings-invoice"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("organisation_settings")
-        .select("key, value")
-        .in("key", ["company_name", "abn", "address"]);
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Derive client info from first line item that has a client
+  const clientData = (lineItems as any[]).find((i: any) => i.client)?.client;
+  const clientName = clientData ? `${clientData.first_name} ${clientData.last_name}` : "";
+  const planManager = clientData?.plan_manager || "";
+  const clientAddr = clientData
+    ? [clientData.address, clientData.suburb, clientData.state, clientData.postcode]
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
-  const orgMap = Object.fromEntries((orgSettings || []).map((s: any) => [s.key, s.value]));
+  function buildPrintRowsHtml(grouped: Map<string, any[]>): string {
+    let html = "";
+    let first = true;
+    grouped.forEach((items, date) => {
+      if (!first) html += `<tr class="spacer"><td colspan="4" style="padding:5px 0;border:none;"></td></tr>`;
+      first = false;
+      for (const item of items) {
+        const { serviceType, timeRange } = parseLineItem(item);
+        const dateLabel = date ? format(parseISO(date), "dd/MM/yy") : "";
+        const dow = date ? dayLabel(date) : "";
+        const hrsNum = Number(item.hours);
+        const hrsStr = hrsNum % 1 === 0 ? `${hrsNum}hrs` : `${hrsNum.toFixed(1)}hrs`;
+        html += `<tr>
+          <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;">
+            <strong>${dateLabel}</strong>
+            <span style="margin-left:8px;color:#555;">${dow}</span>
+            <span style="margin-left:12px;">${serviceType}</span>
+            ${timeRange ? `<span style="margin-left:12px;color:#555;">${timeRange}</span>` : ""}
+          </td>
+          <td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e8e8e8;">${hrsStr}</td>
+          <td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e8e8e8;">$${Number(item.rate).toFixed(0)}</td>
+          <td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e8e8e8;">$${Number(item.amount).toFixed(2)}</td>
+        </tr>`;
+      }
+    });
+    return html;
+  }
 
   const handlePrint = () => {
-    const content = printRef.current;
-    if (!content) return;
+    if (!invoice) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`
-      <html><head><title>Invoice ${invoice?.invoice_number}</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #1a1a1a; }
-        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #e5e5e5; font-size: 13px; }
-        th { font-weight: 600; color: #666; }
-        .total-row td { font-weight: 700; border-top: 2px solid #333; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 24px; }
-        .meta { color: #666; font-size: 13px; }
-        h1 { margin: 0; font-size: 24px; }
-        .amount { text-align: right; }
-      </style></head><body>
-      ${content.innerHTML}
-      </body></html>
-    `);
+
+    const grouped = groupByDate(lineItems as any[]);
+    const rowsHtml = buildPrintRowsHtml(grouped);
+    const invoiceDate = invoice.invoice_date
+      ? format(parseISO(invoice.invoice_date), "dd/MM/yyyy")
+      : format(new Date(), "dd/MM/yyyy");
+    const total = Number(invoice.total || 0).toFixed(2);
+
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice ${invoice.invoice_number}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size:11pt; color:#000; padding:32px 40px; }
+    @media print { body { padding:16px 24px; } @page { margin:16mm; size:A4; } }
+    .outer { width:100%; border-collapse:collapse; margin-bottom:20px; }
+    .outer td { vertical-align:top; }
+    .company { font-size:14pt; font-weight:bold; margin-bottom:4px; }
+    .bill-to { margin-top:14px; }
+    .divider { border:none; border-top:1px solid #ccc; margin:14px 0; }
+    table.lines { width:100%; border-collapse:collapse; }
+    table.lines thead tr { border-bottom:2px solid #000; }
+    table.lines th { padding:6px 8px; font-size:10pt; }
+    table.lines th:first-child { text-align:left; }
+    table.lines th:not(:first-child) { text-align:right; }
+    .total-wrap { float:right; width:260px; margin-top:10px; }
+    .total-row { border-top:2px solid #000; font-weight:bold; font-size:12pt; }
+    .total-row td { padding:8px 8px 0; }
+    .total-row td:last-child { text-align:right; }
+    .clear { clear:both; }
+    .footer { margin-top:28px; border-top:1px solid #ccc; padding-top:14px; font-size:10pt; line-height:1.9; }
+    .gst-note { margin-top:10px; font-style:italic; font-size:9pt; color:#555; }
+  </style>
+</head>
+<body>
+  <table class="outer">
+    <tr>
+      <td style="width:55%;">
+        <div class="company">Carters Care Group</div>
+        <div>Disability &amp; Aged Care</div>
+        <div>PO Box 1118</div>
+        <div>Osborne Park WA 6916</div>
+        <div>1300 00 27 23</div>
+        <div class="bill-to">
+          <div><strong>Bill To:</strong></div>
+          ${planManager ? `<div>${planManager}</div>` : ""}
+          ${clientName ? `<div>C/O ${clientName}</div>` : ""}
+          ${clientAddr ? `<div style="color:#555;font-size:10pt;">${clientAddr}</div>` : ""}
+        </div>
+      </td>
+      <td style="text-align:right;">
+        <div><strong>Services:</strong></div>
+        <div>Domestic Assistance</div>
+        <div>Personal Care</div>
+        <div>Community Support</div>
+        <div style="margin-top:14px;">
+          <div><strong>Invoice No:</strong> ${invoice.invoice_number}</div>
+          <div><strong>Date:</strong> ${invoiceDate}</div>
+        </div>
+      </td>
+    </tr>
+  </table>
+  <hr class="divider"/>
+  <table class="lines">
+    <thead>
+      <tr>
+        <th>Date / Service</th>
+        <th style="text-align:right;">Hrs</th>
+        <th style="text-align:right;">Rate</th>
+        <th style="text-align:right;">Total</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <div class="total-wrap">
+    <table style="width:100%;border-collapse:collapse;">
+      <tr class="total-row">
+        <td>Total (GST-free)</td>
+        <td>$${total}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="clear"></div>
+  <div class="footer">
+    <div>Invoice to be paid within 5 business days to:</div>
+    <div style="margin-top:6px;"><strong>Bendigo Bank Account</strong></div>
+    <div>Carters Care Group</div>
+    <div>BSB: 633 000</div>
+    <div>Account: 209 045 806</div>
+    <div class="gst-note">Please note: all services are gst-free</div>
+  </div>
+</body>
+</html>`);
     win.document.close();
     win.print();
   };
@@ -97,19 +239,67 @@ export function ViewInvoiceDialog({ open, onClose, invoiceId, isAdmin, onStatusC
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent><div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></DialogContent>
+        <DialogContent>
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </DialogContent>
       </Dialog>
     );
   }
 
   if (!invoice) return null;
 
+  const grouped = groupByDate(lineItems as any[]);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Invoice {invoice.invoice_number}</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between mb-4 sticky top-0 bg-background pb-2 z-10">
+          <div>
+            <p className="text-sm font-semibold text-foreground">{invoice.invoice_number}</p>
+            <p className="text-xs text-muted-foreground">
+              {invoice.invoice_date ? format(parseISO(invoice.invoice_date), "dd MMM yyyy") : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {isAdmin && invoice.status === "draft" && (
+              <button
+                onClick={() => statusMutation.mutate("submitted")}
+                disabled={statusMutation.isPending}
+                className="h-8 px-3 rounded-lg border text-xs font-medium text-foreground bg-card hover:bg-secondary transition-colors"
+              >
+                Mark Submitted
+              </button>
+            )}
+            {isAdmin && invoice.status === "submitted" && (
+              <>
+                <button
+                  onClick={() => statusMutation.mutate("approved")}
+                  disabled={statusMutation.isPending}
+                  className="h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => statusMutation.mutate("rejected")}
+                  disabled={statusMutation.isPending}
+                  className="h-8 px-3 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 transition-colors"
+                >
+                  Reject
+                </button>
+              </>
+            )}
+            {isAdmin && invoice.status === "approved" && (
+              <button
+                onClick={() => statusMutation.mutate("paid")}
+                disabled={statusMutation.isPending}
+                className="h-8 px-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100 transition-colors"
+              >
+                Mark Paid
+              </button>
+            )}
             <button
               onClick={handlePrint}
               className="h-8 px-3 rounded-lg border bg-card text-xs font-medium text-foreground flex items-center gap-1.5 hover:bg-secondary transition-colors"
@@ -117,108 +307,124 @@ export function ViewInvoiceDialog({ open, onClose, invoiceId, isAdmin, onStatusC
               <Printer className="h-3.5 w-3.5" /> Print / PDF
             </button>
           </div>
-        </DialogHeader>
+        </div>
 
-        <div ref={printRef} className="space-y-4 mt-2">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-semibold text-card-foreground">
-                {invoice.staff?.first_name} {invoice.staff?.last_name}
-              </p>
-              {invoice.abn && <p className="text-xs text-muted-foreground">ABN: {invoice.abn}</p>}
-              {invoice.staff?.email && <p className="text-xs text-muted-foreground">{invoice.staff.email}</p>}
-              {invoice.staff?.phone && <p className="text-xs text-muted-foreground">{invoice.staff.phone}</p>}
-              {invoice.staff?.address && <p className="text-xs text-muted-foreground">{invoice.staff.address}</p>}
+        {/* Invoice preview card */}
+        <div ref={printRef} className="rounded-lg border bg-white text-gray-900 p-6 space-y-4 text-[13px]">
+          {/* Header: 2-col */}
+          <div className="flex gap-4">
+            <div className="flex-1 space-y-0.5 leading-relaxed">
+              <p className="font-bold text-[15px]">Carters Care Group</p>
+              <p>Disability &amp; Aged Care</p>
+              <p>PO Box 1118</p>
+              <p>Osborne Park WA 6916</p>
+              <p>1300 00 27 23</p>
+              <div className="mt-3">
+                <p className="font-semibold">Bill To:</p>
+                {planManager && <p>{planManager}</p>}
+                {clientName && <p>C/O {clientName}</p>}
+                {clientAddr && <p className="text-gray-500 text-xs">{clientAddr}</p>}
+              </div>
             </div>
-            <div className="text-right text-xs space-y-0.5">
-              <p className="font-medium text-card-foreground">{invoice.invoice_number}</p>
-              <p className="text-muted-foreground">Date: {format(new Date(invoice.invoice_date), "dd/MM/yyyy")}</p>
-              {invoice.due_date && <p className="text-muted-foreground">Due: {format(new Date(invoice.due_date), "dd/MM/yyyy")}</p>}
-              <p className={`font-medium capitalize ${
-                invoice.status === "paid" ? "text-success" :
-                invoice.status === "approved" ? "text-success" :
-                invoice.status === "rejected" ? "text-destructive" :
-                "text-muted-foreground"
-              }`}>
-                {invoice.status}
-              </p>
+            <div className="text-right leading-relaxed shrink-0">
+              <p className="font-semibold">Services:</p>
+              <p>Domestic Assistance</p>
+              <p>Personal Care</p>
+              <p>Community Support</p>
+              <div className="mt-3 space-y-0.5">
+                <p><span className="font-semibold">Invoice No: </span>{invoice.invoice_number}</p>
+                <p><span className="font-semibold">Date: </span>
+                  {invoice.invoice_date
+                    ? format(parseISO(invoice.invoice_date), "dd/MM/yyyy")
+                    : format(new Date(), "dd/MM/yyyy")}
+                </p>
+                <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
+                  invoice.status === "paid"      ? "bg-blue-100 text-blue-700" :
+                  invoice.status === "approved"  ? "bg-emerald-100 text-emerald-700" :
+                  invoice.status === "rejected"  ? "bg-red-100 text-red-600" :
+                  invoice.status === "submitted" ? "bg-amber-100 text-amber-700" :
+                  "bg-gray-100 text-gray-600"
+                }`}>{invoice.status}</span>
+              </div>
             </div>
           </div>
 
-          {orgMap.company_name && (
-            <div className="rounded-lg bg-secondary/50 p-3 text-xs">
-              <p className="font-medium text-card-foreground">Bill To: {orgMap.company_name}</p>
-              {orgMap.abn && <p className="text-muted-foreground">ABN: {orgMap.abn}</p>}
-              {orgMap.address && <p className="text-muted-foreground">{orgMap.address}</p>}
-            </div>
-          )}
+          <hr className="border-gray-300" />
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Date</th>
-                  <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Description</th>
-                  <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Hours</th>
-                  <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Rate</th>
-                  <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item: any) => (
-                  <tr key={item.id} className="border-b last:border-0">
-                    <td className="py-2 px-2 text-xs text-muted-foreground">
-                      {item.service_date ? format(new Date(item.service_date), "dd/MM") : "—"}
-                    </td>
-                    <td className="py-2 px-2 text-xs text-card-foreground">{item.description}</td>
-                    <td className="py-2 px-2 text-xs text-right text-card-foreground">{Number(item.hours).toFixed(1)}</td>
-                    <td className="py-2 px-2 text-xs text-right text-muted-foreground">${Number(item.rate).toFixed(2)}</td>
-                    <td className="py-2 px-2 text-xs text-right font-medium text-card-foreground">${Number(item.amount).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Line items */}
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="border-b-2 border-gray-800">
+                <th className="text-left py-1.5 pr-2 font-semibold">Date / Service</th>
+                <th className="text-right py-1.5 px-2 font-semibold">Hrs</th>
+                <th className="text-right py-1.5 px-2 font-semibold">Rate</th>
+                <th className="text-right py-1.5 pl-2 font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const rows: React.ReactElement[] = [];
+                let first = true;
+                grouped.forEach((items, date) => {
+                  if (!first) {
+                    rows.push(
+                      <tr key={`spacer-${date}`}>
+                        <td colSpan={4} className="py-1.5" />
+                      </tr>
+                    );
+                  }
+                  first = false;
+                  (items as any[]).forEach((item: any) => {
+                    const { serviceType, timeRange } = parseLineItem(item);
+                    const dateLabel = date ? format(parseISO(date), "dd/MM/yy") : "";
+                    const dow = date ? dayLabel(date) : "";
+                    const hrsNum = Number(item.hours);
+                    const hrsStr = hrsNum % 1 === 0 ? `${hrsNum}hrs` : `${hrsNum.toFixed(1)}hrs`;
+                    rows.push(
+                      <tr key={item.id} className="border-b border-gray-100">
+                        <td className="py-1.5 pr-2">
+                          <span className="font-medium">{dateLabel}</span>
+                          {dow && <span className="ml-2 text-gray-500">{dow}</span>}
+                          {serviceType && <span className="ml-3">{serviceType}</span>}
+                          {timeRange && <span className="ml-3 text-gray-500">{timeRange}</span>}
+                        </td>
+                        <td className="py-1.5 px-2 text-right">{hrsStr}</td>
+                        <td className="py-1.5 px-2 text-right text-gray-500">${Number(item.rate).toFixed(0)}</td>
+                        <td className="py-1.5 pl-2 text-right font-medium">${Number(item.amount).toFixed(2)}</td>
+                      </tr>
+                    );
+                  });
+                });
+                return rows;
+              })()}
+            </tbody>
+          </table>
 
+          {/* Total */}
           <div className="flex justify-end">
-            <div className="w-48 space-y-1 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>${Number(invoice.subtotal).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>GST</span>
-                <span>${Number(invoice.gst).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-card-foreground pt-1 border-t">
-                <span>Total</span>
+            <div className="w-56 border-t-2 border-gray-800 pt-2">
+              <div className="flex justify-between text-sm font-bold">
+                <span>Total (GST-free)</span>
                 <span>${Number(invoice.total).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          {invoice.notes && (
-            <div className="rounded-lg bg-secondary/50 p-3 text-xs text-muted-foreground">
-              <span className="font-medium text-card-foreground">Notes: </span>{invoice.notes}
-            </div>
-          )}
+          <hr className="border-gray-200" />
 
-          {/* Compliance audit trail */}
-          {validations.length > 0 && (
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5 text-primary" />
-                <span className="text-xs font-semibold text-card-foreground">Compliance Audit Trail</span>
-              </div>
-              <div className="space-y-1">
-                {validations.map((v: any) => (
-                  <div key={v.id} className={`flex items-center gap-1.5 text-[10px] ${v.passed ? "text-success" : "text-destructive"}`}>
-                    {v.passed ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                    <span className="font-medium capitalize">{v.validation_type.replace(/_/g, " ")}:</span>
-                    <span className="opacity-80">{v.message}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Payment footer */}
+          <div className="text-[12px] text-gray-700 leading-relaxed space-y-0.5">
+            <p>Invoice to be paid within 5 business days to:</p>
+            <p className="font-semibold mt-1">Bendigo Bank Account</p>
+            <p>Carters Care Group</p>
+            <p>BSB: 633 000</p>
+            <p>Account: 209 045 806</p>
+          </div>
+          <p className="text-[11px] text-gray-500 italic">Please note: all services are gst-free</p>
+
+          {invoice.notes && (
+            <div className="rounded bg-gray-50 p-2 text-xs text-gray-600">
+              <span className="font-medium">Notes: </span>{invoice.notes}
             </div>
           )}
         </div>

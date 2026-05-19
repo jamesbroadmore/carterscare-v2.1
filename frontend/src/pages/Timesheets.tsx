@@ -5,10 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatPerthDate, formatPerthTime, extractPerthTime } from "@/lib/perth-time";
 import { TimesheetDetailDialog } from "@/components/timesheets/TimesheetDetailDialog";
 import { fullName } from "@/lib/display-names";
 import { Avatar, TableContainer, TableHead, Th, Td, OutlineButton, StatusBadge, EmptyState, DialogOverlay, DialogHeader, PrimaryButton } from "@/components/ui-kit";
+// DialogOverlay and DialogHeader still used by ApprovalDialog below
 import { createNotification } from "@/components/NotificationBell";
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
@@ -23,9 +25,9 @@ export default function Timesheets() {
   const [selectedTimesheet, setSelectedTimesheet] = useState<any>(null);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [selectedForApproval, setSelectedForApproval] = useState<any[]>([]);
-  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: timesheets = [], isLoading } = useQuery({
     queryKey: ["timesheets"],
@@ -193,7 +195,7 @@ export default function Timesheets() {
               </button>
             )}
             <button
-              onClick={() => setShowInvoiceDialog(true)}
+              onClick={() => navigate("/invoices")}
               className="h-9 px-4 rounded-xl text-white text-sm font-bold flex items-center gap-2 shadow-md hover:opacity-90 transition-all"
               style={{ background: "linear-gradient(135deg, #a78bfa, #8b5cf6)" }}
               data-testid="timesheets-generate-invoice-btn"
@@ -302,12 +304,6 @@ export default function Timesheets() {
         />
       )}
 
-      {showInvoiceDialog && (
-        <InvoiceGeneratorDialog 
-          timesheets={timesheets.filter((t: any) => t.status === "approved")}
-          onClose={() => setShowInvoiceDialog(false)}
-        />
-      )}
     </AppLayout>
   );
 }
@@ -387,130 +383,4 @@ function ApprovalDialog({
   );
 }
 
-function InvoiceGeneratorDialog({ timesheets, onClose }: { timesheets: any[]; onClose: () => void }) {
-  const [selectedStaff, setSelectedStaff] = useState<string>("all");
-  const [hourlyRate, setHourlyRate] = useState("45");
-  const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-6)}`);
 
-  // Group by staff
-  const staffOptions = Array.from(new Set(timesheets.map((t: any) => t.staff_id))).map(staffId => {
-    const t = timesheets.find((ts: any) => ts.staff_id === staffId);
-    return { id: staffId, name: fullName(t.staff) };
-  });
-
-  const filteredForInvoice = selectedStaff === "all" 
-    ? timesheets 
-    : timesheets.filter((t: any) => t.staff_id === selectedStaff);
-
-  const totalHours = filteredForInvoice.reduce((sum: number, t: any) => sum + (t.total_hours || 0), 0);
-  const totalAmount = totalHours * parseFloat(hourlyRate || "0");
-
-  const generateInvoice = () => {
-    // Generate invoice CSV
-    const invoiceLines = [
-      `Invoice Number,${invoiceNumber}`,
-      `Date,${new Date().toISOString().split("T")[0]}`,
-      `Staff,${selectedStaff === "all" ? "All Staff" : staffOptions.find(s => s.id === selectedStaff)?.name}`,
-      "",
-      "Date,Client,Hours,Rate,Amount",
-      ...filteredForInvoice.map((t: any) => 
-        `${t.shift_date},${fullName(t.client)},${t.total_hours},${hourlyRate},${(t.total_hours * parseFloat(hourlyRate)).toFixed(2)}`
-      ),
-      "",
-      `Total Hours,${totalHours.toFixed(1)}`,
-      `Hourly Rate,$${hourlyRate}`,
-      `Total Amount,$${totalAmount.toFixed(2)}`,
-    ];
-
-    const csv = invoiceLines.join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${invoiceNumber}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Invoice generated and downloaded");
-    onClose();
-  };
-
-  return (
-    <DialogOverlay onClose={onClose}>
-      <DialogHeader title="Generate Invoice" onClose={onClose} gradient="linear-gradient(90deg, #a78bfa, #8b5cf6)" />
-      <div className="p-6 space-y-4">
-        {timesheets.length === 0 ? (
-          <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-slate-200 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No approved timesheets available for invoicing.</p>
-            <p className="text-xs text-slate-400 mt-1">Approve timesheets first to generate invoices.</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 block">Invoice Number</label>
-                <input
-                  type="text"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 block">Hourly Rate ($)</label>
-                <input
-                  type="number"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2 block">Staff / Subcontractor</label>
-              <select
-                value={selectedStaff}
-                onChange={(e) => setSelectedStaff(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-              >
-                <option value="all">All Staff ({timesheets.length} entries)</option>
-                {staffOptions.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-purple-600">Entries</span>
-                <span className="text-sm font-semibold text-purple-800">{filteredForInvoice.length}</span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-purple-600">Total Hours</span>
-                <span className="text-sm font-semibold text-purple-800">{totalHours.toFixed(1)}h</span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-purple-200">
-                <span className="text-sm font-semibold text-purple-700">Total Amount</span>
-                <span className="text-xl font-bold text-purple-800">${totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={onClose} className="h-10 px-4 rounded-xl border text-sm font-medium text-foreground hover:bg-secondary transition-colors">
-                Cancel
-              </button>
-              <button
-                onClick={generateInvoice}
-                className="h-10 px-5 rounded-xl text-white text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-md"
-                style={{ background: "linear-gradient(135deg, #a78bfa, #8b5cf6)" }}
-              >
-                <DollarSign className="h-4 w-4" /> Generate Invoice
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </DialogOverlay>
-  );
-}

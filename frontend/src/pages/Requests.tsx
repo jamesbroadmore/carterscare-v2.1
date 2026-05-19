@@ -93,7 +93,7 @@ export default function Requests() {
       const { data, error } = await query;
       if (error) {
         // Table might not exist yet, return empty array
-        console.log("Requests table may not exist:", error.message);
+        // Table might not exist yet, return empty array silently
         return [];
       }
       return data as Request[];

@@ -239,15 +239,14 @@ Keep your timesheets accurate and up to date.`,
     manager: `**About invoices:**
 
 Invoices are managed by administrators. You can view approved timesheets ready for billing.`,
-    admin: `**Generating invoices:**
+    admin: `**Creating invoices:**
 
-1. Go to **Invoices** in Admin
-2. Click **Generate Invoice**
-3. Select approved timesheets
-4. Set the hourly rate
-5. Download CSV invoice
-
-Only approved timesheets can be invoiced.`,
+1. Go to **Invoices** in the sidebar
+2. Click **New Invoice**
+3. Select the client
+4. Add service lines (date, service type, start/end time)
+5. Rates: Mon–Fri $60/hr · Sat $90/hr · Sun $120/hr (GST-free)
+6. Submit and approve when ready`,
     links: [{ text: "Invoices", url: "/invoices" }, { text: "Timesheets", url: "/timesheets" }],
     minLevel: 2
   },
@@ -641,15 +640,15 @@ Just ask me anything!`;
                     <img src={maureenImg} alt="Maureen" className="h-full w-full object-cover" />
                   </div>
                   <div className="rounded-2xl rounded-tl-none bg-slate-100 px-3 sm:px-4 py-2.5 text-sm sm:text-base text-slate-700 max-w-[85%]">
-                    G'day! I'm Maureen, your care assistant. {
+                    Hello dear, I'm Maureen — your care assistant. {
                       securityLevel === 4 
                         ? "As an admin, I can help you manage staff, approvals, invoices, and run Tidy Up." 
                         : securityLevel === 3 
                           ? "As a manager, I can help you with team rosters, approvals, and staff management."
                           : securityLevel === 2
                             ? "I can help you with your shifts, timesheets, and client notes."
-                            : "Welcome to your care portal! I can help you with your schedule, care notes, and requests."
-                    } Just ask!
+                            : "Welcome to your care portal, dear. I can help you with your schedule, care notes, and requests."
+                    } Just ask.
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 pl-10 sm:pl-11">

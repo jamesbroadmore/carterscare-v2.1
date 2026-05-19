@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPerthGreeting, getPerthDate, formatPerthTime } from "@/lib/perth-time";
-import { useNavigate } from "react-router-dom";
+import { getPerthDate, formatPerthTime } from "@/lib/perth-time";
+import { getDashboardGreeting } from "@/lib/dashboard-greetings";
+import { useNavigate, Navigate } from "react-router-dom";
 import { fullName } from "@/lib/display-names";
 
 // Generate avatar initials + color from name
@@ -80,10 +81,15 @@ function StatCard({
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isSupportWorker, isDemoMode, demoRole } = useAuth();
   const navigate = useNavigate();
 
-  const { data: greeting } = useQuery({
+  // Support workers belong in the worker app, not the admin dashboard
+  if (isSupportWorker || (isDemoMode && demoRole === "support_worker")) {
+    return <Navigate to="/worker" replace />;
+  }
+
+  const { data: greetingName } = useQuery({
     queryKey: ["dashboard-greeting", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -97,6 +103,8 @@ export default function Dashboard() {
       return profile?.display_name || user!.email?.split("@")[0] || "there";
     },
   });
+
+  const greeting = getDashboardGreeting(greetingName ?? "there");
 
   const { data: staffCount = 0 } = useQuery({
     queryKey: ["dashboard-staff-count"],
@@ -202,11 +210,10 @@ export default function Dashboard() {
         >
           <div>
             <h2 className="text-2xl font-bold text-foreground">
-              <span style={{ fontWeight: 800 }}>Your</span>{" "}
-              <span className="text-muted-foreground font-normal">Dashboard</span>
+              {greetingName ? greeting.message : "Your Dashboard"}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {getPerthGreeting()}, {greeting ?? "..."} · Welcome back
+              {greetingName ? greeting.sub : "Welcome back"}
             </p>
           </div>
           <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { Plus, FileText, Loader2, CheckCircle, Clock, Send, Eye, Pencil } from "lucide-react";
+import { Plus, FileText, Loader2, CheckCircle, Clock, Send, Eye, Pencil, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { ViewInvoiceDialog } from "@/components/invoices/ViewInvoiceDialog";
 import { EditInvoiceDialog } from "@/components/invoices/EditInvoiceDialog";
-import { fullName } from "@/lib/display-names";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600 border border-slate-200",
@@ -34,16 +33,33 @@ export default function Invoices() {
   const [showCreate, setShowCreate] = useState(false);
   const [viewInvoice, setViewInvoice] = useState<any>(null);
   const [editInvoice, setEditInvoice] = useState<any>(null);
+  const [clientFilter, setClientFilter] = useState("");
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*, staff:staff_id(first_name, last_name, preferred_name, employment_type)")
+        .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+
+      const invoiceIds = (data || []).map((i: any) => i.id);
+      if (invoiceIds.length === 0) return data;
+
+      const { data: lineItems } = await supabase
+        .from("invoice_line_items")
+        .select("invoice_id, client:client_id(id, first_name, last_name)")
+        .in("invoice_id", invoiceIds);
+
+      const clientMap: Record<string, any> = {};
+      for (const li of lineItems || []) {
+        if (!clientMap[(li as any).invoice_id] && (li as any).client) {
+          clientMap[(li as any).invoice_id] = (li as any).client;
+        }
+      }
+
+      return (data || []).map((inv: any) => ({ ...inv, client: clientMap[inv.id] || null }));
     },
   });
 
@@ -65,18 +81,61 @@ export default function Invoices() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete line items first (FK constraint)
+      const { error: liError } = await supabase.from("invoice_line_items").delete().eq("invoice_id", id);
+      if (liError) throw liError;
+      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Invoice deleted"); queryClient.invalidateQueries({ queryKey: ["invoices"] }); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  // Unique clients for filter dropdown
+  const clientOptions = Array.from(
+    new Map(
+      invoices
+        .filter((inv: any) => inv.client)
+        .map((inv: any) => [inv.client.id, inv.client])
+    ).values()
+  ) as any[];
+
+  const filteredInvoices = clientFilter
+    ? invoices.filter((inv: any) => inv.client?.id === clientFilter)
+    : invoices;
+
   return (
     <AppLayout title="Invoices">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground" data-testid="invoices-count">{invoices.length} invoices</p>
-          <button onClick={() => setShowCreate(true)}
-            className="h-9 px-4 rounded-xl text-white text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)" }}
-            data-testid="invoices-new-btn"
-            aria-label="Create new invoice">
-            <Plus className="h-4 w-4" aria-hidden="true" /> New Invoice
-          </button>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-muted-foreground" data-testid="invoices-count">{filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""}</p>
+            {isAdmin && clientOptions.length > 0 && (
+              <select
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="h-8 px-3 rounded-lg border bg-card text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">All clients</option>
+                {clientOptions.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          {isAdmin ? (
+            <button onClick={() => setShowCreate(true)}
+              className="h-9 px-4 rounded-xl text-white text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)" }}
+              data-testid="invoices-new-btn"
+              aria-label="Create new invoice">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New Invoice
+            </button>
+          ) : (
+            <span className="text-xs text-slate-400 italic">Invoice generation is restricted to administrators</span>
+          )}
         </div>
 
         <CreateInvoiceDialog open={showCreate} onClose={() => setShowCreate(false)} />
@@ -88,13 +147,15 @@ export default function Invoices() {
 
         {isLoading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : invoices.length === 0 ? (
+        ) : filteredInvoices.length === 0 ? (
           <div className="rounded-2xl bg-white border border-border/50 shadow-sm p-12 text-center">
             <div className="h-14 w-14 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
               <FileText className="h-7 w-7 text-slate-300" />
             </div>
             <p className="text-sm font-semibold text-foreground">No invoices yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Create one from your approved timesheets.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isAdmin ? "Click \"New Invoice\" to create one." : "Invoices will appear here once created by an administrator."}
+            </p>
           </div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl bg-white shadow-sm border border-border/50 overflow-hidden">
@@ -103,7 +164,7 @@ export default function Invoices() {
                 <thead>
                   <tr className="border-b bg-slate-100/80">
                     <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Invoice #</th>
-                    {isAdmin && <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Staff</th>}
+                    {isAdmin && <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Client</th>}
                     <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">Date</th>
                     <th className="text-right px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Total</th>
                     <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
@@ -111,16 +172,20 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {invoices.map((inv: any) => {
+                  {filteredInvoices.map((inv: any) => {
                     const Icon = STATUS_ICONS[inv.status] || Clock;
                     return (
                       <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3.5 font-bold text-foreground">{inv.invoice_number}</td>
                         {isAdmin && (
-                          <td className="px-4 py-3.5 text-muted-foreground">{fullName(inv.staff)}</td>
+                          <td className="px-4 py-3.5 text-muted-foreground">
+                            {inv.client ? `${inv.client.first_name} ${inv.client.last_name}` : "—"}
+                          </td>
                         )}
                         <td className="px-4 py-3.5 text-muted-foreground hidden md:table-cell">
-                          {format(new Date(inv.invoice_date), "MMM d, yyyy")}
+                          {inv.invoice_date
+                            ? format(new Date(inv.invoice_date), "MMM d, yyyy")
+                            : format(new Date(inv.created_at), "MMM d, yyyy")}
                         </td>
                         <td className="px-4 py-3.5 text-right font-bold text-foreground">${Number(inv.total).toFixed(2)}</td>
                         <td className="px-4 py-3.5">
@@ -134,10 +199,24 @@ export default function Invoices() {
                               className="h-7 px-2.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center gap-1">
                               <Eye className="h-3.5 w-3.5" />
                             </button>
-                            {inv.status === "draft" && (
+                            {inv.status === "draft" && isAdmin && (
                               <button onClick={() => setEditInvoice(inv)}
                                 className="h-7 px-2.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                                 <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {inv.status === "draft" && isAdmin && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Delete invoice ${inv.invoice_number}? This cannot be undone.`)) {
+                                    deleteMutation.mutate(inv.id);
+                                  }
+                                }}
+                                disabled={deleteMutation.isPending}
+                                className="h-7 px-2.5 rounded-lg text-xs text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete draft invoice"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             )}
                             {inv.status === "draft" && !isAdmin && (

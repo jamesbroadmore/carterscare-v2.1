@@ -11,7 +11,7 @@ export type WorkerNavTab = "home" | "clients" | "roster" | "checkin" | "notes";
 const NAV_ITEMS: { tab: WorkerNavTab; icon: any; label: string; path: string }[] = [
   { tab: "home",    icon: Home,        label: "Home",     path: "/worker" },
   { tab: "clients", icon: UserCircle,  label: "Clients",  path: "/clients" },
-  { tab: "roster",  icon: CalendarDays,label: "Roster",   path: "/roster" },
+  { tab: "roster",  icon: CalendarDays,label: "Roster",   path: "/my-roster" },
   { tab: "checkin", icon: MapPinCheck, label: "Check In", path: "/worker/check-in" },
   { tab: "notes",   icon: FileText,    label: "Notes",    path: "/worker/notes" },
 ];

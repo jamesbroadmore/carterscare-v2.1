@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AIChatbot } from "@/components/AIChatbot";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
-import { Bell, AlertTriangle, ShieldCheck, Clock, X, Search } from "lucide-react";
+import { Bell, AlertTriangle, ShieldCheck, Clock, X } from "lucide-react";
 import { getPerthDate } from "@/lib/perth-time";
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -137,11 +137,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Search button */}
-              <button className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors hidden md:flex">
-                <Search className="h-4 w-4" />
-              </button>
-
               {/* Service Status */}
               <ServiceStatusBadge size="sm" showLabel={false} />
 

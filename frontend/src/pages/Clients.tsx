@@ -33,18 +33,10 @@ export default function Clients() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
   
-  // Panel collapse state - default collapsed on mobile, expanded on desktop
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(() => {
-    // Check localStorage for user preference, default based on screen size
-    const saved = localStorage.getItem('clientsPanelCollapsed');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth < 768; // Collapsed by default on mobile
-  });
+  // Panel collapse state - always start expanded so list is visible first
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
-  // Save preference to localStorage
-  useEffect(() => {
-    localStorage.setItem('clientsPanelCollapsed', String(isPanelCollapsed));
-  }, [isPanelCollapsed]);
+
 
   // Fetch clients
   const { data: clientsData = [], isLoading } = useQuery({
@@ -89,12 +81,7 @@ export default function Clients() {
     );
   }, [clientsData, search]);
 
-  // Auto-select first client if none selected
-  useEffect(() => {
-    if (!selectedClient && filteredClients.length > 0) {
-      setSelectedClient(filteredClients[0]);
-    }
-  }, [filteredClients, selectedClient]);
+  // Do NOT auto-select — user should pick from list first
 
   // Update edit data when client changes
   useEffect(() => {
@@ -421,10 +408,12 @@ export default function Clients() {
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center p-4">
-              <div className="text-center">
-                <UserCircle className="h-12 w-12 sm:h-16 sm:w-16 text-slate-200 mx-auto mb-4" />
-                <h3 className="text-base sm:text-lg font-semibold text-slate-600">Select a Client</h3>
-                <p className="text-sm text-slate-400 mt-1">Choose a client from the list to view their details</p>
+              <div className="text-center max-w-xs">
+                <div className="h-16 w-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
+                  <UserCircle className="h-8 w-8 text-teal-400" />
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-700">Select a client</h3>
+                <p className="text-sm text-slate-400 mt-1.5">Choose a client from the list on the left to view their full profile, care plan, notes, and schedule.</p>
                 {isPanelCollapsed && (
                   <button
                     onClick={() => setIsPanelCollapsed(false)}

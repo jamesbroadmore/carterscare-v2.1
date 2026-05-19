@@ -56,6 +56,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard, requiredRole: "support_worker", iconClass: "icon-purple" },
       { title: "Clients", url: "/clients", icon: Heart, requiredRole: "support_worker", iconClass: "icon-teal", badge: "★" },
+      { title: "Case Notes", url: "/case-notes", icon: FileText, requiredRole: "support_worker", iconClass: "icon-blue" },
     ],
   },
   {
@@ -65,7 +66,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "My Roster", url: "/my-roster", icon: CalendarDays, requiredRole: "support_worker", iconClass: "icon-blue" },
       { title: "My Timesheets", url: "/my-timesheets", icon: Clock, requiredRole: "support_worker", iconClass: "icon-yellow" },
-      { title: "Case Notes", url: "/case-notes", icon: FileText, requiredRole: "support_worker", iconClass: "icon-blue" },
       { title: "Incidents", url: "/incidents", icon: AlertTriangle, requiredRole: "support_worker", iconClass: "icon-red" },
       { title: "Onboarding", url: "/staff-onboarding", icon: GraduationCap, requiredRole: "support_worker", iconClass: "icon-green" },
     ],
@@ -146,13 +146,18 @@ export function AppSidebar({ onMaureenClick, maureenHasAlert }: AppSidebarProps)
 
   const toggleGroup = (label: string) => {
     setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(label)) {
+      // If already open, close it. Otherwise, open only this one (close all others).
+      if (prev.has(label)) {
+        const next = new Set(prev);
         next.delete(label);
-      } else {
-        next.add(label);
+        return next;
       }
-      return next;
+      // Close all collapsible groups, open only the clicked one
+      const alwaysOpen = new Set<string>(
+        navGroups.filter(g => !g.collapsible).map(g => g.label)
+      );
+      alwaysOpen.add(label);
+      return alwaysOpen;
     });
   };
 
@@ -206,6 +211,36 @@ export function AppSidebar({ onMaureenClick, maureenHasAlert }: AppSidebarProps)
         ref={scrollRef}
         className="py-2 overflow-y-auto scrollbar-thin"
       >
+        {/* Ask Maureen — top of nav */}
+        <div className="px-2 pb-1 pt-1">
+          <button
+            onClick={onMaureenClick}
+            className={`w-full flex items-center gap-2.5 rounded-lg p-2 transition-colors border ${
+              maureenHasAlert
+                ? "bg-amber-50 border-amber-200 hover:bg-amber-100"
+                : "bg-purple-50 border-purple-100 hover:bg-purple-100"
+            } ${collapsed ? "justify-center" : ""}`}
+            data-testid="sidebar-maureen-button-top"
+          >
+            <div className="relative shrink-0">
+              <img
+                src={maureenImg}
+                alt="Ask Maureen"
+                className="h-7 w-7 rounded-full object-cover border-2 border-purple-200 shadow-sm"
+              />
+              {maureenHasAlert && (
+                <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 border-2 border-white" />
+              )}
+            </div>
+            {!collapsed && (
+              <div className="flex flex-col min-w-0 text-left">
+                <span className="text-xs font-bold text-purple-700">Ask Maureen</span>
+                <span className="text-[10px] text-slate-400">AI Assistant</span>
+              </div>
+            )}
+          </button>
+        </div>
+
         {visibleGroups.map((group, groupIndex) => {
           const isExpanded = expandedGroups.has(group.label);
           const hasActiveItem = group.items.some(item => 
@@ -292,32 +327,6 @@ export function AppSidebar({ onMaureenClick, maureenHasAlert }: AppSidebarProps)
 
       {/* User Profile Footer */}
       <SidebarFooter className="border-t border-slate-100 p-2 space-y-2">
-        {/* Ask Maureen Button */}
-        <button
-          onClick={onMaureenClick}
-          className={`w-full flex items-center gap-2.5 rounded-lg p-2 hover:bg-purple-50 transition-colors ${
-            collapsed ? "justify-center" : ""
-          } ${maureenHasAlert ? "bg-amber-50 hover:bg-amber-100" : ""}`}
-          data-testid="sidebar-maureen-button"
-        >
-          <div className="relative shrink-0">
-            <img 
-              src={maureenImg} 
-              alt="Ask Maureen" 
-              className="h-8 w-8 rounded-full object-cover border-2 border-purple-200 shadow-sm"
-            />
-            {maureenHasAlert && (
-              <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-400 border-2 border-white" />
-            )}
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col min-w-0 text-left">
-              <span className="text-xs font-semibold text-purple-700">Ask Maureen</span>
-              <span className="text-[10px] text-slate-400">AI Assistant</span>
-            </div>
-          )}
-        </button>
-
         {/* User Profile */}
         <div
           className={`flex items-center gap-2.5 rounded-lg p-2 hover:bg-slate-50 transition-colors ${
