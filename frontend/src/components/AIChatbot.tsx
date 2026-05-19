@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Loader2, User, Maximize2, Minimize2, ExternalLink, Sparkles } from "lucide-react";
+import { X, Send, Loader2, User, Maximize2, Minimize2, ExternalLink, Sparkles, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +7,29 @@ import { useNavigate } from "react-router-dom";
 import maureenImg from "@/assets/maureen.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+// Security clearance levels (1-4)
+// Level 1: Client - Can only see own data, limited help
+// Level 2: Support Worker - Can see assigned clients, shifts, basic operations
+// Level 3: Manager - Can see team data, approve timesheets, manage staff
+// Level 4: Admin - Full access including financials, reports, settings, tidy up
+
+type SecurityLevel = 1 | 2 | 3 | 4;
+
+const SECURITY_LEVEL_NAMES: Record<SecurityLevel, string> = {
+  1: "Client",
+  2: "Support Worker",
+  3: "Manager",
+  4: "Admin",
+};
+
+// Client suggestions (Level 1)
+const CLIENT_SUGGESTIONS = [
+  "When is my next visit?",
+  "How do I view my care notes?",
+  "How do I contact my care team?",
+  "How do I submit a request?",
+];
 
 // Role-based quick actions
 const WORKER_SUGGESTIONS = [
@@ -31,8 +54,66 @@ const ADMIN_SUGGESTIONS = [
 ];
 
 // Quick help responses (role-aware) - Maureen's personality: structured, warm, precise
-const QUICK_HELP: Record<string, { worker: string; manager: string; admin: string; links?: { text: string; url: string }[] }> = {
+// Added client responses for 4-tier security
+const QUICK_HELP: Record<string, { client: string; worker: string; manager: string; admin: string; links?: { text: string; url: string }[]; minLevel?: SecurityLevel }> = {
+  "next visit": {
+    client: `**Your Upcoming Visits:**
+
+1. Check the **My Schedule** tab in your portal
+2. Your next visit details are shown on the Overview page
+3. You'll see the date, time, and support worker assigned
+
+If you need to change a visit time, submit a request.`,
+    worker: `**Viewing Client Visits:**
+
+Check the client's profile or use the roster to see upcoming visits.`,
+    manager: `**Managing Client Visits:**
+
+Go to **Full Roster** to see all scheduled visits. Click any visit to view details.`,
+    admin: `**Managing Client Visits:**
+
+Go to **Full Roster** to see all scheduled visits. Click any visit to view or edit details.`,
+    links: [{ text: "My Schedule", url: "/client-portal" }],
+  },
+  "care notes": {
+    client: `**Viewing Your Care Notes:**
+
+1. Go to the **Care Notes** tab in your portal
+2. Notes shared by your care team will appear here
+3. Only notes marked "visible to client" are shown
+
+These notes help track your progress and care activities.`,
+    worker: `**Writing Care Notes:**
+
+1. Go to **Case Notes** from My Work
+2. Select the client
+3. Add your note with details of the visit
+4. Mark "visible to client" if appropriate`,
+    manager: `**Reviewing Care Notes:**
+
+Go to **Case Notes** to review all notes. Filter by client, date, or staff member.`,
+    admin: `**Managing Care Notes:**
+
+Go to **Case Notes** to review all notes. You can filter, export, and manage visibility settings.`,
+    links: [{ text: "Case Notes", url: "/notes" }],
+  },
+  "contact": {
+    client: `**Contacting Your Care Team:**
+
+1. Submit a **Request** through the portal
+2. Your care coordinator will respond within 24 hours
+3. For urgent matters, call our office directly
+
+We're here to help.`,
+    worker: `Contact your manager or the office for assistance.`,
+    manager: `Contact the admin team or use internal communications.`,
+    admin: `Use the internal communication system or contact staff directly.`,
+    links: [{ text: "Submit Request", url: "/client-portal" }],
+  },
   "check in": {
+    client: `**About Check-ins:**
+
+Your support worker will check in when they arrive for your visit. You'll see the visit status in your schedule.`,
     worker: `**Checking in for your shift:**
 
 1. Go to **My Roster** from the sidebar
@@ -58,6 +139,9 @@ The Dashboard shows real-time check-in status.`,
     links: [{ text: "Go to My Roster", url: "/my-roster" }, { text: "View Dashboard", url: "/" }]
   },
   "timesheet": {
+    client: `**About Timesheets:**
+
+Timesheets track the hours your support workers spend with you. This is used for billing and service records. You don't need to do anything - your care team handles this.`,
     worker: `**Submitting your timesheet:**
 
 1. Go to **My Timesheets**
@@ -80,9 +164,13 @@ Note: Timesheets are auto-generated from your check-ins.`,
 4. Click **Approve Selected**
 
 After approval, you can generate invoices.`,
-    links: [{ text: "My Timesheets", url: "/my-timesheets" }, { text: "All Timesheets", url: "/timesheets" }]
+    links: [{ text: "My Timesheets", url: "/my-timesheets" }, { text: "All Timesheets", url: "/timesheets" }],
+    minLevel: 2
   },
   "client note": {
+    client: `**Your Care Notes:**
+
+Care notes are summaries of your visits. Go to the **Care Notes** tab in your portal to see notes your team has shared with you.`,
     worker: `**Writing a client note:**
 
 1. Go to **Case Notes** in My Work
@@ -108,6 +196,9 @@ You can export notes for reporting purposes.`,
     links: [{ text: "Case Notes", url: "/notes" }]
   },
   "incident": {
+    client: `**About Incidents:**
+
+If something happens during your care that concerns you, please tell your support worker or submit a request through the portal. Your safety is our priority.`,
     worker: `**Reporting an incident:**
 
 1. Go to **Incidents** in My Work
@@ -131,9 +222,15 @@ Important: Report all incidents as soon as they occur.`,
 4. Close when resolved
 
 The Dashboard alerts you to open incidents.`,
-    links: [{ text: "Report Incident", url: "/incidents" }]
+    links: [{ text: "Report Incident", url: "/incidents" }],
+    minLevel: 2
   },
   "invoice": {
+    client: `**Your Invoices:**
+
+View your invoices in the **Invoices** tab of your portal. You can see pending and paid invoices, and download copies.
+
+For billing questions, submit a request to your care coordinator.`,
     worker: `**About invoices:**
 
 Invoices are managed by administrators. Once your timesheet is approved, it can be included in billing.
@@ -151,9 +248,13 @@ Invoices are managed by administrators. You can view approved timesheets ready f
 5. Download CSV invoice
 
 Only approved timesheets can be invoiced.`,
-    links: [{ text: "Invoices", url: "/invoices" }, { text: "Timesheets", url: "/timesheets" }]
+    links: [{ text: "Invoices", url: "/invoices" }, { text: "Timesheets", url: "/timesheets" }],
+    minLevel: 2
   },
   "staff": {
+    client: `**Your Care Team:**
+
+Your support workers are listed in your care plan. If you'd like to know more about who will be visiting, contact your care coordinator.`,
     worker: `**Your profile:**
 
 Contact your manager or administrator to update your profile details. You can view your compliance documents in **My Work**.`,
@@ -171,9 +272,13 @@ For HR documents, contact an administrator.`,
 3. Use **HR & Docs** for compliance documents
 
 Track certifications and expiry dates there.`,
-    links: [{ text: "Staff List", url: "/staff" }, { text: "HR & Docs", url: "/staff/hr" }]
+    links: [{ text: "Staff List", url: "/staff" }, { text: "HR & Docs", url: "/staff/hr" }],
+    minLevel: 2
   },
   "roster": {
+    client: `**Your Schedule:**
+
+View your upcoming visits in the **My Schedule** tab of your portal. You'll see dates, times, and which support worker is assigned.`,
     worker: `**Viewing your roster:**
 
 1. Go to **My Roster** in My Work
@@ -198,6 +303,7 @@ The Dashboard shows active shifts.`,
     links: [{ text: "My Roster", url: "/my-roster" }, { text: "Full Roster", url: "/roster" }]
   },
   "tidy": {
+    client: `I'm sorry, that feature isn't available in the client portal.`,
     worker: `**Tidy Up:**
 
 The Tidy Up feature is available to administrators only. It helps clean up old records, expired shifts, and pending items.
@@ -218,9 +324,19 @@ I can take you there now. Tidy Up helps you:
 - Archive resolved incidents
 
 Click below to open Tidy Up.`,
-    links: [{ text: "Open Tidy Up", url: "/tidy-up" }]
+    links: [{ text: "Open Tidy Up", url: "/tidy-up" }],
+    minLevel: 4
   },
   "help": {
+    client: `**Hello, dear. I'm Maureen.**
+
+Welcome to your client portal! I can help you with:
+- **Schedule** – View your upcoming visits
+- **Care Notes** – See notes from your care team
+- **Requests** – Submit questions or changes
+- **Contact** – Reach your care coordinator
+
+Just ask me anything.`,
     worker: `**Hello, dear. I'm Maureen.**
 
 I can help you with:
@@ -267,17 +383,46 @@ export function AIChatbot({ isOpen, onOpenChange, urgentMessage = "" }: AIChatbo
   const [quickLinks, setQuickLinks] = useState<{ text: string; url: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { role, isAdmin, isManager } = useAuth();
+  const { role, isAdmin, isManager, demoRole, isDemoMode } = useAuth();
   const navigate = useNavigate();
 
-  // Determine suggestions based on role
-  const suggestions = isAdmin ? ADMIN_SUGGESTIONS : isManager ? MANAGER_SUGGESTIONS : WORKER_SUGGESTIONS;
+  // Calculate security level (1-4)
+  const getSecurityLevel = (): SecurityLevel => {
+    if (isDemoMode && demoRole) {
+      if (demoRole === "admin") return 4;
+      if (demoRole === "manager") return 3;
+      if (demoRole === "support_worker") return 2;
+      return 1; // client
+    }
+    if (isAdmin) return 4;
+    if (isManager) return 3;
+    return 2; // default support_worker
+  };
 
-  // Get response based on role
+  const securityLevel = getSecurityLevel();
+  const isClient = securityLevel === 1;
+
+  // Determine suggestions based on security level
+  const suggestions = isClient 
+    ? CLIENT_SUGGESTIONS 
+    : isAdmin 
+      ? ADMIN_SUGGESTIONS 
+      : isManager 
+        ? MANAGER_SUGGESTIONS 
+        : WORKER_SUGGESTIONS;
+
+  // Get response based on security level (4-tier)
   const getRoleResponse = (helpItem: typeof QUICK_HELP[string]) => {
-    if (isAdmin) return helpItem.admin;
-    if (isManager) return helpItem.manager;
-    return helpItem.worker;
+    // Check if user has required security level
+    if (helpItem.minLevel && securityLevel < helpItem.minLevel) {
+      return `I'm sorry, that information requires ${SECURITY_LEVEL_NAMES[helpItem.minLevel]} access or higher. Your current clearance is ${SECURITY_LEVEL_NAMES[securityLevel]}.`;
+    }
+    
+    // Return appropriate response for security level
+    if (securityLevel === 4) return helpItem.admin;
+    if (securityLevel === 3) return helpItem.manager;
+    if (securityLevel === 2) return helpItem.worker;
+    return helpItem.client; // Level 1
   };
 
   // Auto-scroll to bottom when messages change
@@ -326,12 +471,15 @@ export function AIChatbot({ isOpen, onOpenChange, urgentMessage = "" }: AIChatbo
         await new Promise(resolve => setTimeout(resolve, 300));
         setMessages(prev => [...prev, { role: "assistant", content: response }]);
         if (value.links && value.links.length > 0) {
-          // Filter links based on role
+          // Filter links based on security level
           const filteredLinks = value.links.filter(link => {
-            if (link.url === "/tidy-up") return isAdmin;
-            if (link.url === "/staff/hr") return isAdmin;
-            if (["/roster", "/timesheets", "/staff"].includes(link.url)) return isManager || isAdmin;
-            return true;
+            if (link.url === "/tidy-up") return securityLevel >= 4;
+            if (link.url === "/staff/hr" || link.url === "/invoices" || link.url === "/analytics") return securityLevel >= 4;
+            if (["/roster", "/timesheets", "/staff", "/requests"].includes(link.url)) return securityLevel >= 3;
+            if (["/my-roster", "/my-timesheets", "/notes", "/incidents"].includes(link.url)) return securityLevel >= 2;
+            // Client portal links
+            if (link.url === "/client-portal") return true;
+            return securityLevel >= 2;
           });
           setQuickLinks(filteredLinks);
         }
@@ -341,12 +489,12 @@ export function AIChatbot({ isOpen, onOpenChange, urgentMessage = "" }: AIChatbo
       }
     }
 
-    // Fallback response
+    // Fallback response based on security level
     if (!quickHelpFound) {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       let fallbackResponse = "";
-      if (isAdmin) {
+      if (securityLevel === 4) { // Admin
         fallbackResponse = `I'm here to help! Here are some things I can assist with:
 
 **Quick Actions:**
@@ -361,7 +509,7 @@ export function AIChatbot({ isOpen, onOpenChange, urgentMessage = "" }: AIChatbo
 - View **Reports** for insights
 
 Just ask me about any topic!`;
-      } else if (isManager) {
+      } else if (securityLevel === 3) { // Manager
         fallbackResponse = `I'm here to help! Here are some things I can assist with:
 
 **Quick Actions:**
@@ -375,7 +523,7 @@ Just ask me about any topic!`;
 - Go to **Full Roster** for team shifts
 
 Just ask me about any topic!`;
-      } else {
+      } else if (securityLevel === 2) { // Support Worker
         fallbackResponse = `I'm here to help! Here are some things I can assist with:
 
 **Quick Actions:**
@@ -389,12 +537,26 @@ Just ask me about any topic!`;
 - Go to **My Timesheets** to see hours
 
 Just ask me about any topic!`;
+      } else { // Client (Level 1)
+        fallbackResponse = `Hello! I'm here to help with your care portal.
+
+**Quick Actions:**
+- "When is my next visit?"
+- "How do I view my care notes?"
+- "How do I contact my care team?"
+- "How do I submit a request?"
+
+**Or try:**
+- Check your **Schedule** for upcoming visits
+- View your **Care Notes** from your team
+
+Just ask me anything!`;
       }
       
       setMessages(prev => [...prev, { role: "assistant", content: fallbackResponse }]);
       setIsLoading(false);
     }
-  }, [messages, isLoading, isAdmin, isManager]);
+  }, [messages, isLoading, securityLevel]);
 
   // Handle navigation from quick links
   const handleLinkClick = (url: string) => {
@@ -465,17 +627,28 @@ Just ask me about any topic!`;
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 scrollbar-thin">
             {messages.length === 0 && (
               <div className="space-y-3">
+                {/* Security Level Badge */}
+                {isDemoMode && (
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-xs font-medium text-purple-700">
+                      <Shield className="h-3 w-3" />
+                      {SECURITY_LEVEL_NAMES[securityLevel]} Access (Level {securityLevel})
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-start gap-2">
                   <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden shrink-0 mt-0.5 shadow-sm border border-purple-100">
                     <img src={maureenImg} alt="Maureen" className="h-full w-full object-cover" />
                   </div>
                   <div className="rounded-2xl rounded-tl-none bg-slate-100 px-3 sm:px-4 py-2.5 text-sm sm:text-base text-slate-700 max-w-[85%]">
                     G'day! I'm Maureen, your care assistant. {
-                      isAdmin 
+                      securityLevel === 4 
                         ? "As an admin, I can help you manage staff, approvals, invoices, and run Tidy Up." 
-                        : isManager 
+                        : securityLevel === 3 
                           ? "As a manager, I can help you with team rosters, approvals, and staff management."
-                          : "I can help you with your shifts, timesheets, and client notes."
+                          : securityLevel === 2
+                            ? "I can help you with your shifts, timesheets, and client notes."
+                            : "Welcome to your care portal! I can help you with your schedule, care notes, and requests."
                     } Just ask!
                   </div>
                 </div>

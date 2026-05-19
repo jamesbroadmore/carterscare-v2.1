@@ -2,23 +2,45 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle, Users, Shield, UserCircle, Heart } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import cartersLogo from "@/assets/Carters-Logo.png";
 import cartersIcon from "@/assets/icon.png";
+import { DEMO_PASSWORD } from "@/contexts/DemoContext";
+
+// Demo accounts for quick access
+const DEMO_QUICK_ACCESS = [
+  { email: "demo@admin.carterscare.com", label: "Admin", icon: Shield, color: "from-purple-500 to-violet-500", desc: "Full platform access" },
+  { email: "demo@manager.carterscare.com", label: "Manager", icon: Users, color: "from-blue-500 to-cyan-500", desc: "Team management" },
+  { email: "demo@worker.carterscare.com", label: "Support Worker", icon: UserCircle, color: "from-teal-500 to-green-500", desc: "Care delivery" },
+  { email: "demo@client.carterscare.com", label: "Client", icon: Heart, color: "from-pink-500 to-rose-500", desc: "Client portal" },
+];
 
 export default function Login() {
-  const { signIn, session, loading: authLoading } = useAuth();
+  const { signIn, session, loading: authLoading, isDemoMode } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
-  if (!authLoading && session) {
+  if (!authLoading && (session || isDemoMode)) {
     return <Navigate to="/" replace />;
   }
+
+  const handleDemoLogin = async (demoEmail: string) => {
+    setLoading(true);
+    try {
+      await signIn(demoEmail, DEMO_PASSWORD);
+      toast.success("Welcome to the demo!");
+    } catch (err: any) {
+      toast.error("Demo login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validateEmail = (value: string) => {
     if (!value) return "Email is required";
@@ -229,6 +251,49 @@ export default function Login() {
               <p className="text-center text-xs text-slate-400 mt-5">
                 Contact your administrator for account access.
               </p>
+
+              {/* Demo Account Toggle */}
+              <div className="mt-6 pt-5 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+                  className="w-full text-sm text-purple-600 font-medium hover:text-purple-700 transition-colors flex items-center justify-center gap-2"
+                  data-testid="toggle-demo-accounts"
+                >
+                  <Users className="h-4 w-4" />
+                  {showDemoAccounts ? "Hide Demo Accounts" : "Try Demo Accounts"}
+                </button>
+
+                {showDemoAccounts && (
+                  <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p className="text-xs text-slate-500 text-center mb-3">
+                      Click any role to explore the platform
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {DEMO_QUICK_ACCESS.map((demo) => {
+                        const Icon = demo.icon;
+                        return (
+                          <button
+                            key={demo.email}
+                            type="button"
+                            onClick={() => handleDemoLogin(demo.email)}
+                            disabled={loading}
+                            className={`p-3 rounded-xl bg-gradient-to-br ${demo.color} text-white text-left hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50`}
+                            data-testid={`demo-login-${demo.label.toLowerCase().replace(/\s+/g, '-')}`}
+                          >
+                            <Icon className="h-5 w-5 mb-1.5" />
+                            <p className="text-xs font-bold">{demo.label}</p>
+                            <p className="text-[10px] opacity-80">{demo.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-center mt-3">
+                      Demo accounts use sample data for sales presentations
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
