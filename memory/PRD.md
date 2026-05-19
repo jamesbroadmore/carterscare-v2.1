@@ -4,10 +4,58 @@
 Redesign the Carters Care platform based on provided design mockups, with comprehensive portal upgrades.
 
 ## User Personas
-1. **Admin Users**: Manage staff, clients, roster, compliance, financials, reports
-2. **Worker Users**: Clock in/out for shifts, write case notes, view roster and clients on mobile
+1. **Admin Users**: Full platform access - manage staff, clients, roster, compliance, financials, reports, Tidy Up
+2. **Manager Users**: Team management access - manage staff, approve timesheets, view reports
+3. **Support Worker Users**: Personal access - clock in/out for shifts, write case notes, view roster and clients
 
 ## What's Been Implemented
+
+### May 2025 - Navigation & Role-Based Access Update (Latest)
+
+#### 3-Tier Security Clearance System
+- **Support Worker** (Level 1): Personal workspace features only
+- **Manager** (Level 2): Support worker access + team management
+- **Admin** (Level 3): Full platform access including Admin section
+
+#### Navigation Cleanup - No Duplicates
+Reorganized sidebar into role-based groups:
+- **Quick Access**: Dashboard, Clients (all users)
+- **My Work**: My Roster, My Timesheets, Case Notes, Incidents, Onboarding (all users)
+- **Team Management**: Full Roster, Timesheets, Staff, Requests (Manager+)
+- **Admin**: HR & Docs, Analytics, Invoices, Reports, Settings (Admin only)
+
+#### Maureen Chatbot Relocation
+- **Removed floating avatar** that covered screen content
+- **Moved to sidebar footer** with "Ask Maureen" button
+- Click-to-open/minimize functionality
+- Alert indicator shows when there are notifications
+- Dismissed urgent alerts - works normally now
+
+#### Tidy Up Access via Maureen Only
+- Removed from sidebar navigation
+- Admins can access by asking Maureen "Run Tidy Up"
+- Maintains admin-only access control
+
+#### Updated Route Protection
+| Route | Access Level | Description |
+|-------|--------------|-------------|
+| / | All Users | Dashboard |
+| /clients | All Users | All Clients |
+| /notes | All Users | Case Notes |
+| /incidents | All Users | Incidents |
+| /my-roster | All Users | Personal Roster |
+| /my-timesheets | All Users | Personal Timesheets |
+| /staff-onboarding | All Users | Onboarding Wizard |
+| /roster | Manager+ | Full Team Roster |
+| /timesheets | Manager+ | All Timesheets |
+| /staff | Manager+ | Staff Management |
+| /requests | Manager+ | Request Management |
+| /staff/hr | Admin Only | HR & Documents |
+| /analytics | Admin Only | Analytics Dashboard |
+| /invoices | Admin Only | Invoice Management |
+| /reports | Admin Only | Reports |
+| /settings | Admin Only | Platform Settings |
+| /tidy-up | Admin Only | Platform Cleanup (via Maureen) |
 
 
 ### May 2025 - Platform Upgrades (Major Release)

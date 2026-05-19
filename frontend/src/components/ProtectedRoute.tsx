@@ -5,10 +5,11 @@ import { Loader2 } from "lucide-react";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
+  managerOnly?: boolean; // Manager or Admin can access
 }
 
-export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
-  const { session, loading, isAdmin, role } = useAuth();
+export function ProtectedRoute({ children, adminOnly = false, managerOnly = false }: ProtectedRouteProps) {
+  const { session, loading, isAdmin, isManager, role } = useAuth();
 
   if (loading) {
     return (
@@ -31,8 +32,13 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
     );
   }
 
+  // Admin-only routes
   if (adminOnly && !isAdmin) {
-    // Redirect support workers to their friendly home page (Option 3)
+    return <Navigate to="/worker" replace />;
+  }
+
+  // Manager-only routes (managers and admins can access)
+  if (managerOnly && !isManager && !isAdmin) {
     return <Navigate to="/worker" replace />;
   }
 

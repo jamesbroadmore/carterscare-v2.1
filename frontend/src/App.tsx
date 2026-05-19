@@ -83,21 +83,21 @@ const App = () => (
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
 
-              {/* Admin Dashboard */}
+              {/* Dashboard - accessible to all authenticated users */}
               <Route
                 path="/"
                 element={
-                  <ProtectedRoute adminOnly>
+                  <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Staff Section (Admin) */}
+              {/* Staff Section - Manager+ */}
               <Route
                 path="/staff"
                 element={
-                  <ProtectedRoute adminOnly>
+                  <ProtectedRoute managerOnly>
                     <Suspense fallback={<PageLoader />}>
                       <Staff />
                     </Suspense>
@@ -117,7 +117,7 @@ const App = () => (
               <Route
                 path="/staff/training"
                 element={
-                  <ProtectedRoute adminOnly>
+                  <ProtectedRoute managerOnly>
                     <Suspense fallback={<PageLoader />}>
                       <StaffTraining />
                     </Suspense>
@@ -167,11 +167,11 @@ const App = () => (
                 }
               />
 
-              {/* Shifts Section */}
+              {/* Shifts Section - Manager+ for full roster, all for individual */}
               <Route
                 path="/roster"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute managerOnly>
                     <Suspense fallback={<PageLoader />}>
                       <Roster />
                     </Suspense>
@@ -191,7 +191,7 @@ const App = () => (
               <Route
                 path="/timesheets"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute managerOnly>
                     <Suspense fallback={<PageLoader />}>
                       <Timesheets />
                     </Suspense>
@@ -201,7 +201,7 @@ const App = () => (
               <Route
                 path="/invoices"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly>
                     <Suspense fallback={<PageLoader />}>
                       <Invoices />
                     </Suspense>
@@ -301,7 +301,7 @@ const App = () => (
               <Route
                 path="/requests"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute managerOnly>
                     <Suspense fallback={<PageLoader />}>
                       <Requests />
                     </Suspense>

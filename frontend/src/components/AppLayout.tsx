@@ -29,6 +29,7 @@ interface NotificationItem {
 
 export function AppLayout({ children, title }: AppLayoutProps) {
   const [notifOpen, setNotifOpen] = useState(false);
+  const [maureenOpen, setMaureenOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -119,7 +120,10 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <AppSidebar 
+          onMaureenClick={() => setMaureenOpen(true)} 
+          maureenHasAlert={totalAlerts > 0}
+        />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Professional Header */}
           <header className="h-14 flex items-center justify-between bg-white border-b border-border/60 px-4 shrink-0 shadow-sm">
@@ -237,7 +241,11 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             </div>
           </main>
         </div>
-        <AIChatbot hasImportantAction={totalAlerts > 0} urgentMessage={urgentMessage} />
+        <AIChatbot 
+          isOpen={maureenOpen} 
+          onOpenChange={setMaureenOpen}
+          urgentMessage={urgentMessage} 
+        />
       </div>
     </SidebarProvider>
   );

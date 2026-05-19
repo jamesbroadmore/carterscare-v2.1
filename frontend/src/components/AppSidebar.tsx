@@ -16,8 +16,8 @@ import {
   FileText,
   MessageSquare,
   PieChart,
-  Sparkles,
   GraduationCap,
+  MessageCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,43 +29,33 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import cartersIcon from "@/assets/icon.png";
+import maureenImg from "@/assets/maureen.png";
 
 type NavItem = {
   title: string;
   url: string;
   icon: any;
-  adminOnly: boolean;
+  requiredRole: "support_worker" | "manager" | "admin"; // Minimum role required
   iconClass: string;
   badge?: string;
 };
 
 type NavGroup = {
   label: string;
-  adminOnly?: boolean;
+  requiredRole?: "support_worker" | "manager" | "admin";
   collapsible?: boolean;
   defaultExpanded?: boolean;
   items: NavItem[];
 };
 
-// Staff-friendly navigation - Clients prominently at top
+// Role-based navigation - Clean, no duplicates
+// Levels: support_worker < manager < admin
 const navGroups: NavGroup[] = [
   {
     label: "Quick Access",
     items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard, adminOnly: false, iconClass: "icon-purple" },
-      { title: "Clients", url: "/clients", icon: Heart, adminOnly: false, iconClass: "icon-teal", badge: "★" },
-    ],
-  },
-  {
-    label: "Daily Tasks",
-    collapsible: true,
-    defaultExpanded: true,
-    items: [
-      { title: "Roster", url: "/roster", icon: CalendarDays, adminOnly: false, iconClass: "icon-orange" },
-      { title: "Timesheets", url: "/timesheets", icon: Clock, adminOnly: false, iconClass: "icon-yellow" },
-      { title: "Case Notes", url: "/notes", icon: FileText, adminOnly: false, iconClass: "icon-blue" },
-      { title: "Incidents", url: "/incidents", icon: AlertTriangle, adminOnly: false, iconClass: "icon-red" },
-      { title: "Requests", url: "/requests", icon: MessageSquare, adminOnly: false, iconClass: "icon-pink" },
+      { title: "Dashboard", url: "/", icon: LayoutDashboard, requiredRole: "support_worker", iconClass: "icon-purple" },
+      { title: "Clients", url: "/clients", icon: Heart, requiredRole: "support_worker", iconClass: "icon-teal", badge: "★" },
     ],
   },
   {
@@ -73,33 +63,58 @@ const navGroups: NavGroup[] = [
     collapsible: true,
     defaultExpanded: true,
     items: [
-      { title: "My Roster", url: "/my-roster", icon: CalendarDays, adminOnly: false, iconClass: "icon-blue" },
-      { title: "My Timesheets", url: "/my-timesheets", icon: Clock, adminOnly: false, iconClass: "icon-yellow" },
-      { title: "Onboarding", url: "/staff-onboarding", icon: GraduationCap, adminOnly: false, iconClass: "icon-green" },
+      { title: "My Roster", url: "/my-roster", icon: CalendarDays, requiredRole: "support_worker", iconClass: "icon-blue" },
+      { title: "My Timesheets", url: "/my-timesheets", icon: Clock, requiredRole: "support_worker", iconClass: "icon-yellow" },
+      { title: "Case Notes", url: "/notes", icon: FileText, requiredRole: "support_worker", iconClass: "icon-blue" },
+      { title: "Incidents", url: "/incidents", icon: AlertTriangle, requiredRole: "support_worker", iconClass: "icon-red" },
+      { title: "Onboarding", url: "/staff-onboarding", icon: GraduationCap, requiredRole: "support_worker", iconClass: "icon-green" },
+    ],
+  },
+  {
+    label: "Team Management",
+    requiredRole: "manager",
+    collapsible: true,
+    defaultExpanded: true,
+    items: [
+      { title: "Full Roster", url: "/roster", icon: CalendarDays, requiredRole: "manager", iconClass: "icon-orange" },
+      { title: "Timesheets", url: "/timesheets", icon: Clock, requiredRole: "manager", iconClass: "icon-yellow" },
+      { title: "Staff", url: "/staff", icon: Users, requiredRole: "manager", iconClass: "icon-blue" },
+      { title: "Requests", url: "/requests", icon: MessageSquare, requiredRole: "manager", iconClass: "icon-pink" },
     ],
   },
   {
     label: "Admin",
-    adminOnly: true,
+    requiredRole: "admin",
     collapsible: true,
     defaultExpanded: false,
     items: [
-      { title: "Staff", url: "/staff", icon: Users, adminOnly: true, iconClass: "icon-blue" },
-      { title: "HR & Docs", url: "/staff/hr", icon: Briefcase, adminOnly: true, iconClass: "icon-purple" },
-      { title: "Analytics", url: "/analytics", icon: PieChart, adminOnly: true, iconClass: "icon-indigo" },
-      { title: "Invoices", url: "/invoices", icon: Receipt, adminOnly: true, iconClass: "icon-green" },
-      { title: "Reports", url: "/reports", icon: BarChart3, adminOnly: true, iconClass: "icon-teal" },
-      { title: "Tidy Up", url: "/tidy-up", icon: Sparkles, adminOnly: true, iconClass: "icon-pink" },
-      { title: "Settings", url: "/settings", icon: Settings, adminOnly: true, iconClass: "icon-slate" },
+      { title: "HR & Docs", url: "/staff/hr", icon: Briefcase, requiredRole: "admin", iconClass: "icon-purple" },
+      { title: "Analytics", url: "/analytics", icon: PieChart, requiredRole: "admin", iconClass: "icon-indigo" },
+      { title: "Invoices", url: "/invoices", icon: Receipt, requiredRole: "admin", iconClass: "icon-green" },
+      { title: "Reports", url: "/reports", icon: BarChart3, requiredRole: "admin", iconClass: "icon-teal" },
+      { title: "Settings", url: "/settings", icon: Settings, requiredRole: "admin", iconClass: "icon-slate" },
     ],
   },
 ];
 
-export function AppSidebar() {
+// Helper to check if user has required role
+function hasAccess(userRole: string | null, requiredRole: string): boolean {
+  const roleHierarchy = { support_worker: 1, manager: 2, admin: 3 };
+  const userLevel = roleHierarchy[userRole as keyof typeof roleHierarchy] || 1;
+  const requiredLevel = roleHierarchy[requiredRole as keyof typeof roleHierarchy] || 1;
+  return userLevel >= requiredLevel;
+}
+
+interface AppSidebarProps {
+  onMaureenClick?: () => void;
+  maureenHasAlert?: boolean;
+}
+
+export function AppSidebar({ onMaureenClick, maureenHasAlert }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, role } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevPathRef = useRef(location.pathname);
   
@@ -141,12 +156,12 @@ export function AppSidebar() {
     });
   };
 
-  // Filter groups based on admin status
+  // Filter groups based on user role
   const visibleGroups = navGroups
-    .filter((g) => !g.adminOnly || isAdmin)
+    .filter((g) => !g.requiredRole || hasAccess(role, g.requiredRole))
     .map((g) => ({
       ...g,
-      items: isAdmin ? g.items : g.items.filter((i) => !i.adminOnly),
+      items: g.items.filter((i) => hasAccess(role, i.requiredRole)),
     }))
     .filter((g) => g.items.length > 0);
 
@@ -276,7 +291,34 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* User Profile Footer */}
-      <SidebarFooter className="border-t border-slate-100 p-2">
+      <SidebarFooter className="border-t border-slate-100 p-2 space-y-2">
+        {/* Ask Maureen Button */}
+        <button
+          onClick={onMaureenClick}
+          className={`w-full flex items-center gap-2.5 rounded-lg p-2 hover:bg-purple-50 transition-colors ${
+            collapsed ? "justify-center" : ""
+          } ${maureenHasAlert ? "bg-amber-50 hover:bg-amber-100" : ""}`}
+          data-testid="sidebar-maureen-button"
+        >
+          <div className="relative shrink-0">
+            <img 
+              src={maureenImg} 
+              alt="Ask Maureen" 
+              className="h-8 w-8 rounded-full object-cover border-2 border-purple-200 shadow-sm"
+            />
+            {maureenHasAlert && (
+              <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-400 border-2 border-white" />
+            )}
+          </div>
+          {!collapsed && (
+            <div className="flex flex-col min-w-0 text-left">
+              <span className="text-xs font-semibold text-purple-700">Ask Maureen</span>
+              <span className="text-[10px] text-slate-400">AI Assistant</span>
+            </div>
+          )}
+        </button>
+
+        {/* User Profile */}
         <div
           className={`flex items-center gap-2.5 rounded-lg p-2 hover:bg-slate-50 transition-colors ${
             collapsed ? "justify-center" : ""

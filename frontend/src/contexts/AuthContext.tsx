@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 
-type AppRole = "admin" | "moderator" | "user";
+// Security clearance levels: support_worker < manager < admin
+type AppRole = "admin" | "manager" | "support_worker";
 
 interface AuthContextType {
   session: Session | null;
@@ -10,6 +11,8 @@ interface AuthContextType {
   loading: boolean;
   role: AppRole | null;
   isAdmin: boolean;
+  isManager: boolean;
+  isSupportWorker: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -27,7 +30,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("role")
       .eq("user_id", userId)
       .single();
-    setRole((data?.role as AppRole) ?? "user");
+    // Map old roles to new security levels
+    const rawRole = data?.role;
+    if (rawRole === "admin") {
+      setRole("admin");
+    } else if (rawRole === "moderator" || rawRole === "manager") {
+      setRole("manager");
+    } else {
+      setRole("support_worker");
+    }
   };
 
   useEffect(() => {
@@ -64,10 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const isAdmin = role === "admin" || role === "moderator";
+  const isAdmin = role === "admin";
+  const isManager = role === "admin" || role === "manager";
+  const isSupportWorker = role === "support_worker";
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, role, isAdmin, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, role, isAdmin, isManager, isSupportWorker, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
