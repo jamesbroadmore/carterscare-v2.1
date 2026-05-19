@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import maureenImg from "@/assets/maureen.png";
+import { getMaureenGreeting, getMaureenThinking, getMaureenSignOff, MAUREEN_PERSONALITY } from "@/lib/maureen-personality";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -25,60 +26,173 @@ const ADMIN_SUGGESTIONS = [
   "How do I manage compliance?",
 ];
 
-// Helpful hints that rotate
+// Helpful hints that rotate - Maureen's personality
 const HELPFUL_HINTS = [
-  "💡 Need help? I'm here!",
-  "📋 Ask about timesheets",
-  "🔔 Got questions? Tap me!",
-  "✨ I can help with compliance",
-  "📝 Ask about client notes",
+  "Need help? I'm here, dear.",
+  "Ask about timesheets.",
+  "Questions? Just tap me.",
+  "I can help with compliance.",
+  "Ask about client notes.",
 ];
 
-// Quick help responses for common questions (role-aware)
+// Quick help responses for common questions (role-aware) - Maureen's personality: structured, warm, precise
 const QUICK_HELP: Record<string, { worker: string; admin: string; links?: { text: string; url: string }[] }> = {
   "check in": {
-    worker: `**Checking in for your shift:**\n\n1. Go to **My Roster** from the sidebar\n2. Find today's shift\n3. Click the **Check In** button\n4. Confirm your location if prompted\n\n✅ You're checked in! Remember to check out when done.`,
-    admin: `**Staff Check-ins:**\n\n1. Go to **Roster** to see all shifts\n2. Active check-ins show in the dashboard\n3. Click on a shift to see check-in details\n\n📊 View real-time check-in status from the Dashboard.`,
+    worker: `**Checking in for your shift:**
+
+1. Go to **My Roster** from the sidebar
+2. Find today's shift
+3. Click the **Check In** button
+4. Confirm your location if prompted
+
+You're all set. Remember to check out when your shift ends.`,
+    admin: `**Staff Check-ins:**
+
+1. Go to **Roster** to see all shifts
+2. Active check-ins appear on the dashboard
+3. Click any shift for details
+
+The Dashboard shows real-time check-in status.`,
     links: [{ text: "Go to My Roster", url: "/my-roster" }, { text: "View Dashboard", url: "/" }]
   },
   "timesheet": {
-    worker: `**Submitting your timesheet:**\n\n1. Go to **My Timesheets**\n2. Review your hours for the period\n3. Click **Submit for Approval**\n4. Wait for admin approval\n\n💡 Timesheets are auto-generated from your check-ins!`,
-    admin: `**Approving timesheets:**\n\n1. Go to **Timesheets**\n2. Filter by "Pending" or "Submitted"\n3. Select timesheets to approve\n4. Click **Approve Selected** or review individually\n\n💰 After approval, you can generate invoices.`,
+    worker: `**Submitting your timesheet:**
+
+1. Go to **My Timesheets**
+2. Review your hours for the period
+3. Click **Submit for Approval**
+4. Wait for admin approval
+
+Note: Timesheets are auto-generated from your check-ins.`,
+    admin: `**Approving timesheets:**
+
+1. Go to **Timesheets**
+2. Filter by "Pending" or "Submitted"
+3. Select timesheets to approve
+4. Click **Approve Selected**
+
+After approval, you can generate invoices.`,
     links: [{ text: "My Timesheets", url: "/my-timesheets" }, { text: "All Timesheets", url: "/timesheets" }]
   },
   "client note": {
-    worker: `**Writing a client note:**\n\n1. Go to **Client Notes** in Daily Workflow\n2. Select the client\n3. Click **Add Note**\n4. Fill in the details and save\n\n📝 Notes help track client progress and care.`,
-    admin: `**Managing client notes:**\n\n1. Go to **Client Notes**\n2. Filter by client, date, or staff\n3. Review and approve notes as needed\n\n📋 Export notes for reporting.`,
-    links: [{ text: "Client Notes", url: "/clients" }]
+    worker: `**Writing a client note:**
+
+1. Go to **Case Notes** in Daily Tasks
+2. Select the client
+3. Click **Add Note**
+4. Fill in the details and save
+
+Good notes help track client progress and care continuity.`,
+    admin: `**Managing client notes:**
+
+1. Go to **Case Notes**
+2. Filter by client, date, or staff
+3. Review and approve as needed
+
+You can export notes for reporting purposes.`,
+    links: [{ text: "Case Notes", url: "/case-notes" }]
   },
   "incident": {
-    worker: `**Reporting an incident:**\n\n1. Go to **Incidents** in Daily Workflow\n2. Click **Report Incident**\n3. Select type: Client or Work incident\n4. Fill in all required details\n5. Submit immediately\n\n⚠️ Report all incidents as soon as possible!`,
-    admin: `**Managing incidents:**\n\n1. Go to **Incidents**\n2. Review open incidents (shown in red)\n3. Investigate and update status\n4. Close when resolved\n\n📊 Dashboard shows incident alerts.`,
+    worker: `**Reporting an incident:**
+
+1. Go to **Incidents** in Daily Tasks
+2. Click **Report Incident**
+3. Select the incident type
+4. Fill in all required details
+5. Submit immediately
+
+Important: Report all incidents as soon as they occur.`,
+    admin: `**Managing incidents:**
+
+1. Go to **Incidents**
+2. Review open incidents (highlighted)
+3. Investigate and update status
+4. Close when resolved
+
+The Dashboard alerts you to open incidents.`,
     links: [{ text: "Report Incident", url: "/incidents" }]
   },
   "invoice": {
-    worker: `**Invoices:**\n\nInvoices are managed by administrators. Once your timesheet is approved, it can be included in an invoice.\n\n✅ Keep your timesheets up to date!`,
-    admin: `**Generating invoices:**\n\n1. Go to **Invoices** in Admin\n2. Click **Generate Invoice**\n3. Select approved timesheets\n4. Set hourly rate\n5. Download CSV invoice\n\n💡 Only approved timesheets can be invoiced.`,
+    worker: `**About invoices:**
+
+Invoices are managed by administrators. Once your timesheet is approved, it can be included in billing.
+
+Keep your timesheets accurate and up to date.`,
+    admin: `**Generating invoices:**
+
+1. Go to **Invoices** in Admin
+2. Click **Generate Invoice**
+3. Select approved timesheets
+4. Set the hourly rate
+5. Download CSV invoice
+
+Only approved timesheets can be invoiced.`,
     links: [{ text: "Invoices", url: "/invoices" }, { text: "Timesheets", url: "/timesheets" }]
   },
   "staff": {
-    worker: `**Your profile:**\n\nContact your administrator to update your profile details or view your compliance documents in **My Tasks**.`,
-    admin: `**Managing staff:**\n\n1. Go to **Staff** in Admin\n2. Click **Add Staff** or click a row to edit\n3. Manage HR docs in **HR & Docs**\n\n📋 Track compliance and certifications.`,
+    worker: `**Your profile:**
+
+Contact your administrator to update your profile details. You can view your compliance documents in **My Work**.`,
+    admin: `**Managing staff:**
+
+1. Go to **Staff** in Admin
+2. Click **Add Staff** or select a row to edit
+3. Use **HR & Docs** for compliance documents
+
+Track certifications and expiry dates there.`,
     links: [{ text: "Staff List", url: "/staff" }, { text: "HR & Docs", url: "/staff/hr" }]
   },
   "compliance": {
-    worker: `**Your compliance:**\n\nCheck **My Tasks** to see your certifications and expiry dates. Upload documents when requested by admin.`,
-    admin: `**Managing compliance:**\n\n1. Go to **HR & Docs**\n2. Expand a staff member\n3. Upload required documents\n4. Track expiry dates\n\n⚠️ Dashboard alerts show expiring documents.`,
+    worker: `**Your compliance:**
+
+Check **My Work** to see your certifications and expiry dates. Upload documents when requested by your administrator.`,
+    admin: `**Managing compliance:**
+
+1. Go to **HR & Docs**
+2. Expand a staff member
+3. Upload required documents
+4. Track expiry dates
+
+Dashboard alerts show expiring documents.`,
     links: [{ text: "HR & Docs", url: "/staff/hr" }]
   },
   "roster": {
-    worker: `**Viewing your roster:**\n\n1. Go to **My Roster**\n2. See your upcoming shifts\n3. Check shift details (time, client, location)\n\n📅 Plan ahead with your schedule!`,
-    admin: `**Managing the roster:**\n\n1. Go to **Roster**\n2. View all scheduled shifts\n3. Assign staff to shifts\n4. Manage recurring schedules\n\n📊 Dashboard shows active shifts.`,
+    worker: `**Viewing your roster:**
+
+1. Go to **My Roster**
+2. See your upcoming shifts
+3. Check shift details (time, client, location)
+
+Plan ahead with your schedule.`,
+    admin: `**Managing the roster:**
+
+1. Go to **Roster**
+2. View all scheduled shifts
+3. Assign staff to shifts
+4. Manage recurring schedules
+
+The Dashboard shows active shifts.`,
     links: [{ text: "My Roster", url: "/my-roster" }, { text: "Full Roster", url: "/roster" }]
   },
   "help": {
-    worker: `**I'm Maureen, your care assistant!**\n\nI can help you with:\n- 📅 **Roster** - View your shifts\n- ⏰ **Timesheets** - Submit hours\n- 📝 **Notes** - Write client notes\n- ⚠️ **Incidents** - Report issues\n\nJust ask me anything!`,
-    admin: `**I'm Maureen, your care assistant!**\n\nAs an admin, I can help with:\n- 👥 **Staff** - Manage team\n- ✅ **Approvals** - Timesheets & docs\n- 💰 **Invoices** - Generate bills\n- 📊 **Reports** - Track everything\n\nJust ask me anything!`,
+    worker: `**Hello, dear. I'm Maureen.**
+
+I can help you with:
+- **Roster** – View your shifts
+- **Timesheets** – Submit your hours
+- **Notes** – Write client notes
+- **Incidents** – Report issues
+
+Just ask me anything.`,
+    admin: `**Hello, dear. I'm Maureen.**
+
+As an administrator, I can help with:
+- **Staff** – Manage your team
+- **Approvals** – Timesheets and documents
+- **Invoices** – Generate billing
+- **Reports** – Track everything
+
+Just ask me anything.`,
     links: []
   }
 };
@@ -118,11 +232,17 @@ export function AIChatbot({ hasImportantAction = false, urgentMessage = "" }: { 
   // When user opens chat with urgent notification, mark as acknowledged
   useEffect(() => {
     if (open && hasImportantAction && !hasAcknowledged) {
-      // Show the urgent message first when opening
+      // Show the urgent message first when opening - Maureen's concerned but calm tone
       if (urgentMessage && messages.length === 0) {
         setMessages([{ 
           role: "assistant", 
-          content: `⚠️ **Attention Required**\n\n${urgentMessage}\n\n---\n\nOnce you've reviewed this, I'm here to help with anything else!`
+          content: `**Attention Required**
+
+${urgentMessage}
+
+---
+
+Once you've reviewed this, I'm here to help with anything else.`
         }]);
       }
       // Mark as acknowledged after a brief delay (user has seen it)

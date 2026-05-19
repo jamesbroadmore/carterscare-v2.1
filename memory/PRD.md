@@ -46,6 +46,16 @@ Redesign the Carters Care platform based on provided design mockups, with compre
 - Click to navigate to full client management
 - Keyboard accessible with focus states
 
+#### Maureen Personality Integration
+- Created comprehensive personality file at `/lib/maureen-personality.ts`
+- Based on natal chart: 24 December 1941 (Capricorn Sun, Pisces Moon)
+- Core traits: Structured but compassionate, precise but warm, patient, intuitive
+- Communication style: Bullet points, warm but not effusive, dry wit occasionally
+- Security clearance levels defined (Client=1, Staff=2, Manager=3, Admin=4)
+- Removed excessive emojis from responses - Maureen prefers economy of expression
+- Updated all quick help responses to match her personality
+- Added greeting functions, acknowledgments, and thinking phrases
+
 #### Demo Data Removal
 - Removed hardcoded mock shifts from `MyRoster.tsx` - now fetches real timesheets from database
 - Removed simulated training completion from `StaffTraining.tsx` - now reads from compliance_records
