@@ -6,7 +6,7 @@
   "installCommand": "bun install",
   "rewrites": [
     {
-      "source": "/((?!assets|favicon|icon|manifest).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
