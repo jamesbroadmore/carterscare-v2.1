@@ -42,16 +42,40 @@ Redesign the Carters Care platform based on provided design mockups, with compre
    - Client visibility toggle for portal sharing
    - Media lightbox viewer
 
-#### Right-Click Context Menu System
-- Created reusable context menu component
-- Pre-built actions: Edit, Delete, Copy, Add Note, Add Attachment, etc.
-- "Ask Maureen about this" integration
-- Keyboard shortcuts support
+5. **Staff Onboarding Wizard** (`/staff-onboarding`)
+   - 6-step guided process: Welcome → Profile → Documents → Training → Schedule → Complete
+   - Progress bar with step indicators
+   - Required documents upload tracking
+   - Mandatory training modules with completion status
+   - Availability/schedule preference setting
+   - Maureen help integration
+
+6. **Tidy Up** (`/tidy-up`)
+   - Platform cleanup dashboard (admin only)
+   - Categories: Expired shifts, Pending timesheets, Old notes, Pending sign-offs, Resolved incidents
+   - One-click "Clean Up All" option
+   - Individual category cleanup
+   - Maureen recommendations
+   - Scheduled weekly cleanup info
+
+#### New Components
+- **Right-Click Context Menu** (`ContextMenu.tsx`)
+  - Pre-built actions: Edit, Delete, Copy, Add Note, Add Attachment, etc.
+  - "Ask Maureen about this" integration
+  - Keyboard shortcuts support
+
+- **Service Status Badge** (`ServiceStatus.tsx`)
+  - Real-time service indicator: Online / Offline / Backup / Maintenance
+  - Auto health check every 30 seconds
+  - Animated pulse for online status
+  - Added to main layout header
 
 #### Navigation Updates
-- Added Requests to Daily Tasks section
+- Added Requests to Daily Tasks
 - Added Analytics to Admin section
-- Updated Case Notes route to use enhanced version
+- Added Onboarding to My Work section
+- Added Tidy Up to Admin section
+- Case Notes now uses enhanced version
 
 ### May 2025 - Comprehensive Platform Audit & Enhancement
 

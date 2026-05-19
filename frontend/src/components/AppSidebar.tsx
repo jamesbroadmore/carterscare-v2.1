@@ -16,6 +16,8 @@ import {
   FileText,
   MessageSquare,
   PieChart,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -73,6 +75,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "My Roster", url: "/my-roster", icon: CalendarDays, adminOnly: false, iconClass: "icon-blue" },
       { title: "My Timesheets", url: "/my-timesheets", icon: Clock, adminOnly: false, iconClass: "icon-yellow" },
+      { title: "Onboarding", url: "/staff-onboarding", icon: GraduationCap, adminOnly: false, iconClass: "icon-green" },
     ],
   },
   {
@@ -86,6 +89,7 @@ const navGroups: NavGroup[] = [
       { title: "Analytics", url: "/analytics", icon: PieChart, adminOnly: true, iconClass: "icon-indigo" },
       { title: "Invoices", url: "/invoices", icon: Receipt, adminOnly: true, iconClass: "icon-green" },
       { title: "Reports", url: "/reports", icon: BarChart3, adminOnly: true, iconClass: "icon-teal" },
+      { title: "Tidy Up", url: "/tidy-up", icon: Sparkles, adminOnly: true, iconClass: "icon-pink" },
       { title: "Settings", url: "/settings", icon: Settings, adminOnly: true, iconClass: "icon-slate" },
     ],
   },

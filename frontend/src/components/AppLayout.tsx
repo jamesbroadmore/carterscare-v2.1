@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import cartersIcon from "@/assets/icon.png";
 import { useAuth } from "@/contexts/AuthContext";
+import { ServiceStatusBadge } from "@/components/ServiceStatus";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -136,6 +137,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               <button className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors hidden md:flex">
                 <Search className="h-4 w-4" />
               </button>
+
+              {/* Service Status */}
+              <ServiceStatusBadge size="sm" showLabel={false} />
 
               {/* User Notifications (approvals, etc.) */}
               <NotificationBell />

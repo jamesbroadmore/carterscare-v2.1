@@ -47,6 +47,8 @@ const Requests = lazy(() => import("./pages/Requests"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const EnhancedCaseNotes = lazy(() => import("./pages/EnhancedCaseNotes"));
+const StaffOnboardingWizard = lazy(() => import("./pages/StaffOnboardingWizard"));
+const TidyUp = lazy(() => import("./pages/TidyUp"));
 
 // Configure React Query with optimized defaults
 const queryClient = new QueryClient({
@@ -330,6 +332,26 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>
                       <EnhancedCaseNotes />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff-onboarding"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <StaffOnboardingWizard />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tidy-up"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <Suspense fallback={<PageLoader />}>
+                      <TidyUp />
                     </Suspense>
                   </ProtectedRoute>
                 }
