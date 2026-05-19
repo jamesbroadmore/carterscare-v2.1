@@ -221,6 +221,16 @@ const App = () => (
                 }
               />
               <Route
+                path="/ask-maureen"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <EnhancedCaseNotes />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/incidents"
                 element={
                   <ProtectedRoute>

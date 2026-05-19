@@ -111,9 +111,9 @@ export default function Clients() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("case_notes")
-        .select("*, staff:staff_id(first_name, last_name)")
+        .select("*, staff:staff_id(first_name, last_name, preferred_name), client:client_id(first_name, last_name, preferred_name)")
         .eq("client_id", selectedClient.id)
-        .order("created_at", { ascending: false })
+        .order("note_date", { ascending: false })
         .limit(20);
       if (error) throw error;
       return data;
@@ -781,6 +781,7 @@ function NotesTab({ client, notes, incidents, isLoading }: any) {
 
       <div>
         <h4 className="text-xs sm:text-sm font-bold text-slate-700 mb-3">Case Notes</h4>
+        <p className="text-[10px] sm:text-xs text-slate-400 mb-3">Visible to assigned staff, managers and admin based on note visibility.</p>
         {isLoading ? (
           <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
         ) : notes.length > 0 ? (
@@ -792,7 +793,10 @@ function NotesTab({ client, notes, incidents, isLoading }: any) {
                     <Avatar name={note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown"} size="sm" />
                     <span className="text-xs sm:text-sm font-medium text-slate-700">{note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown"}</span>
                   </div>
-                  <span className="text-[10px] sm:text-xs text-slate-400">{new Date(note.created_at).toLocaleString()}</span>
+                  <div className="text-right">
+                    <span className="text-[10px] sm:text-xs text-slate-400 block">{new Date(note.note_date || note.created_at).toLocaleString()}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-teal-600">{(note.category || "general").replace(/_/g, " ")}</span>
+                  </div>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600">{note.content}</p>
               </div>

@@ -25,9 +25,9 @@ This is a React/Vite frontend application that connects to Supabase for authenti
 ### 2. Configure Build Settings
 Vercel should auto-detect these, but verify:
 - **Framework Preset**: Vite
-- **Build Command**: `yarn build`
+- **Build Command**: `bun run build`
 - **Output Directory**: `dist`
-- **Install Command**: `yarn install`
+- **Install Command**: `bun install`
 
 ### 3. Set Environment Variables
 In Vercel Project Settings > Environment Variables, add:

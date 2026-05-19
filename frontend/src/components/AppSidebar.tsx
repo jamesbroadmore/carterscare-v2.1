@@ -65,7 +65,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "My Roster", url: "/my-roster", icon: CalendarDays, requiredRole: "support_worker", iconClass: "icon-blue" },
       { title: "My Timesheets", url: "/my-timesheets", icon: Clock, requiredRole: "support_worker", iconClass: "icon-yellow" },
-      { title: "Case Notes", url: "/notes", icon: FileText, requiredRole: "support_worker", iconClass: "icon-blue" },
+      { title: "Case Notes", url: "/case-notes", icon: FileText, requiredRole: "support_worker", iconClass: "icon-blue" },
       { title: "Incidents", url: "/incidents", icon: AlertTriangle, requiredRole: "support_worker", iconClass: "icon-red" },
       { title: "Onboarding", url: "/staff-onboarding", icon: GraduationCap, requiredRole: "support_worker", iconClass: "icon-green" },
     ],

@@ -23,6 +23,11 @@ const CATEGORIES = [
   { value: "skill_development", label: "Skill Development" },
   { value: "other", label: "Other" },
 ];
+const VISIBILITY = [
+  { value: "assigned_staff", label: "Assigned staff only" },
+  { value: "manager_admin", label: "Managers + admin" },
+  { value: "admin_only", label: "Admin only" },
+];
 
 const CATEGORY_COLORS: Record<string, string> = {
   general: "bg-slate-100 text-slate-600",
@@ -89,7 +94,7 @@ export default function CaseNotes() {
             <EmptyState
               icon={FileText}
               title={notes.length === 0 ? "No case notes yet" : "No notes match your search"}
-              description={notes.length === 0 ? 'Click "New Note" to add the first case note.' : "Try different search terms."}
+              description={notes.length === 0 ? 'Click "Add Case Note" to add the first case note.' : "Try different search terms."}
             />
           </div>
         ) : (
@@ -191,22 +196,32 @@ function AddCaseNoteDialog({ onClose }: { onClose: () => void }) {
             ))}
           </FormSelect>
         </FormField>
-        <FormField label="Category">
+        <FormField label="Date & Time" required>
+          <input type="datetime-local" value={form.note_date} onChange={(e) => setForm({ ...form, note_date: e.target.value })} className="w-full h-10 rounded-xl border border-border px-3 text-sm bg-white" />
+        </FormField>
+        <FormField label="Support Worker" required>
+          <FormSelect value={form.staff_id} onChange={(v) => setForm({ ...form, staff_id: v })}>
+            <option value="">Select worker...</option>
+            <option value={staffProfile || ""}>Myself</option>
+          </FormSelect>
+        </FormField>
+        <FormField label="Category" required>
           <FormSelect value={form.category} onChange={(v) => setForm({ ...form, category: v })}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </FormSelect>
         </FormField>
+        <FormField label="Visibility">
+          <FormSelect value={form.visibility} onChange={(v) => setForm({ ...form, visibility: v })}>
+            {VISIBILITY.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+          </FormSelect>
+        </FormField>
         <FormField label="Note" required>
           <FormTextarea value={form.content} onChange={(v) => setForm({ ...form, content: v })}
-            placeholder="Describe the support provided, observations, client mood..." rows={4} />
+            placeholder="Write the note..." rows={5} />
         </FormField>
-        <label className="flex items-center gap-2.5 cursor-pointer">
-          <input type="checkbox" checked={form.is_confidential} onChange={(e) => setForm({ ...form, is_confidential: e.target.checked })} className="rounded border-border" />
-          <span className="text-sm text-muted-foreground">Mark as confidential (admin-only visibility)</span>
-        </label>
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-center gap-2">
           <Lock className="h-4 w-4 text-amber-500 shrink-0" />
-          <p className="text-xs text-amber-700">Case notes become immutable 1 hour after creation.</p>
+          <p className="text-xs text-amber-700">Filed to the client card for assigned staff, managers and admin, based on visibility.</p>
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="h-10 px-4 rounded-xl border text-sm font-medium text-foreground hover:bg-secondary transition-colors">Cancel</button>
