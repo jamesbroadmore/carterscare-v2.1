@@ -10,6 +10,49 @@ Redesign the Carters Care platform based on provided design mockups, with compre
 ## What's Been Implemented
 
 
+### May 2025 - Platform Upgrades (Major Release)
+
+#### New Pages Created
+1. **Request Management** (`/requests`)
+   - Track client/staff requests with status workflow
+   - Priority levels: Low, Medium, High, Urgent
+   - Types: Service, Schedule, Billing, Complaint, Feedback, Other
+   - Status tracking: Pending → In Progress → Completed/Cancelled
+   - Quick status change buttons for admins
+
+2. **Analytics Dashboard** (`/analytics`)
+   - Time range filters: 7 days, 30 days, 90 days, Year
+   - Key metrics: Total hours, Active staff, Active clients, Open incidents
+   - Timesheets overview with approval progress
+   - Incidents overview with severity tracking
+   - "Insights from Maureen" - AI-generated observations
+
+3. **Client Portal** (`/client-portal`)
+   - Secure client-facing interface (Security Level 1)
+   - View own case notes, schedule, invoices
+   - Submit and track requests
+   - Mobile-first responsive design
+   - Welcome card with upcoming visits
+
+4. **Enhanced Case Notes** (`/notes`)
+   - Video and image uploads with album-style layout
+   - List view and Album/Grid view toggle
+   - Checklist templates: Daily Care, Cleaning, Social Activity
+   - Tick-box quick entry for common tasks
+   - Client visibility toggle for portal sharing
+   - Media lightbox viewer
+
+#### Right-Click Context Menu System
+- Created reusable context menu component
+- Pre-built actions: Edit, Delete, Copy, Add Note, Add Attachment, etc.
+- "Ask Maureen about this" integration
+- Keyboard shortcuts support
+
+#### Navigation Updates
+- Added Requests to Daily Tasks section
+- Added Analytics to Admin section
+- Updated Case Notes route to use enhanced version
+
 ### May 2025 - Comprehensive Platform Audit & Enhancement
 
 #### Platform Audit Completed

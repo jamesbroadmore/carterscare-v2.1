@@ -14,6 +14,8 @@ import {
   Briefcase,
   Heart,
   FileText,
+  MessageSquare,
+  PieChart,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -59,8 +61,9 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Roster", url: "/roster", icon: CalendarDays, adminOnly: false, iconClass: "icon-orange" },
       { title: "Timesheets", url: "/timesheets", icon: Clock, adminOnly: false, iconClass: "icon-yellow" },
-      { title: "Case Notes", url: "/case-notes", icon: FileText, adminOnly: false, iconClass: "icon-blue" },
+      { title: "Case Notes", url: "/notes", icon: FileText, adminOnly: false, iconClass: "icon-blue" },
       { title: "Incidents", url: "/incidents", icon: AlertTriangle, adminOnly: false, iconClass: "icon-red" },
+      { title: "Requests", url: "/requests", icon: MessageSquare, adminOnly: false, iconClass: "icon-pink" },
     ],
   },
   {
@@ -80,8 +83,9 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Staff", url: "/staff", icon: Users, adminOnly: true, iconClass: "icon-blue" },
       { title: "HR & Docs", url: "/staff/hr", icon: Briefcase, adminOnly: true, iconClass: "icon-purple" },
-      { title: "Invoices", url: "/invoices", icon: Receipt, adminOnly: true, iconClass: "icon-indigo" },
-      { title: "Reports", url: "/reports", icon: BarChart3, adminOnly: true, iconClass: "icon-green" },
+      { title: "Analytics", url: "/analytics", icon: PieChart, adminOnly: true, iconClass: "icon-indigo" },
+      { title: "Invoices", url: "/invoices", icon: Receipt, adminOnly: true, iconClass: "icon-green" },
+      { title: "Reports", url: "/reports", icon: BarChart3, adminOnly: true, iconClass: "icon-teal" },
       { title: "Settings", url: "/settings", icon: Settings, adminOnly: true, iconClass: "icon-slate" },
     ],
   },

@@ -42,6 +42,12 @@ const MyTimesheets = lazy(() => import("./pages/MyTimesheets"));
 const WorkerCheckIn = lazy(() => import("./pages/WorkerCheckIn"));
 const WorkerNotes = lazy(() => import("./pages/WorkerNotes"));
 
+// New pages - Platform upgrades
+const Requests = lazy(() => import("./pages/Requests"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const ClientPortal = lazy(() => import("./pages/ClientPortal"));
+const EnhancedCaseNotes = lazy(() => import("./pages/EnhancedCaseNotes"));
+
 // Configure React Query with optimized defaults
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -284,6 +290,46 @@ const App = () => (
                   <ProtectedRoute adminOnly>
                     <Suspense fallback={<PageLoader />}>
                       <SettingsPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* New Platform Features */}
+              <Route
+                path="/requests"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <Requests />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <Suspense fallback={<PageLoader />}>
+                      <Analytics />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/client-portal"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <ClientPortal />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/notes"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <EnhancedCaseNotes />
                     </Suspense>
                   </ProtectedRoute>
                 }
