@@ -133,7 +133,10 @@ export default function Clients() {
         .gte("start_time", new Date().toISOString().split("T")[0])
         .order("start_time")
         .limit(50);
-      if (error) throw error;
+      if (error) {
+        console.warn("shifts query failed:", error.message);
+        return [];
+      }
       return data;
     },
   });

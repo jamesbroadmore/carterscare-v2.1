@@ -48,7 +48,10 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
         .eq("client_id", client.id)
         .order("created_at", { ascending: false })
         .limit(20);
-      if (error) throw error;
+      if (error) {
+        console.warn("shifts query failed:", error.message);
+        return [];
+      }
       return data;
     },
   });
