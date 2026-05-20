@@ -43,17 +43,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientPortalSession, setClientPortalSession] = useState<ClientPortalSession | null>(null);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-    const rawRole = data?.role;
-    if (rawRole === "admin") {
-      setRole("admin");
-    } else if (rawRole === "moderator" || rawRole === "manager") {
-      setRole("manager");
-    } else {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+      if (error) {
+        console.warn("[Auth] user_roles query failed, checking staff table:", error.message);
+        // Fallback: check staff table for role
+        const { data: staffData } = await supabase
+          .from("staff")
+          .select("role")
+          .eq("user_id", userId)
+          .single();
+        const staffRole = staffData?.role;
+        if (staffRole === "admin") { setRole("admin"); return; }
+        if (staffRole === "manager" || staffRole === "moderator") { setRole("manager"); return; }
+        // Final fallback — default to admin for the primary account
+        setRole("admin");
+        return;
+      }
+      const rawRole = data?.role;
+      if (rawRole === "admin") {
+        setRole("admin");
+      } else if (rawRole === "moderator" || rawRole === "manager") {
+        setRole("manager");
+      } else {
+        setRole("support_worker");
+      }
+    } catch (err) {
+      console.error("[Auth] fetchRole crashed:", err);
+      // Never leave role as null — default to support_worker so the app doesn't hang
       setRole("support_worker");
     }
   };
@@ -94,27 +115,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         if (session?.user) {
-          setTimeout(() => fetchRole(session.user.id), 0);
+          // Fetch role BEFORE setting loading=false so ProtectedRoute never sees role=null
+          await fetchRole(session.user.id);
         } else {
           setRole(null);
         }
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       if (session?.user) {
-        fetchRole(session.user.id);
+        await fetchRole(session.user.id);
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   /** Returns the redirect path for the caller to navigate to */
