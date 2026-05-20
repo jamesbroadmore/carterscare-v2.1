@@ -308,6 +308,10 @@ export type Database = {
           phone: string | null
           preferred_name: string | null
           primary_disability: string | null
+          rate_weekday: number | null
+          rate_saturday: number | null
+          rate_sunday: number | null
+          rate_public_holiday: number | null
           status: string
           support_needs: string | null
           updated_at: string
@@ -331,6 +335,10 @@ export type Database = {
           phone?: string | null
           preferred_name?: string | null
           primary_disability?: string | null
+          rate_weekday?: number | null
+          rate_saturday?: number | null
+          rate_sunday?: number | null
+          rate_public_holiday?: number | null
           status?: string
           support_needs?: string | null
           updated_at?: string
@@ -354,6 +362,10 @@ export type Database = {
           phone?: string | null
           preferred_name?: string | null
           primary_disability?: string | null
+          rate_weekday?: number | null
+          rate_saturday?: number | null
+          rate_sunday?: number | null
+          rate_public_holiday?: number | null
           status?: string
           support_needs?: string | null
           updated_at?: string

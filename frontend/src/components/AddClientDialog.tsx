@@ -23,6 +23,10 @@ const clientSchema = z.object({
   emergency_contact_phone: z.string().trim().max(20).optional(),
   emergency_contact_relationship: z.string().trim().max(50).optional(),
   notes: z.string().trim().max(2000).optional(),
+  rate_weekday: z.string().optional(),
+  rate_saturday: z.string().optional(),
+  rate_sunday: z.string().optional(),
+  rate_public_holiday: z.string().optional(),
 });
 
 type ClientForm = z.infer<typeof clientSchema>;
@@ -45,6 +49,10 @@ const emptyForm: ClientForm = {
   emergency_contact_phone: "",
   emergency_contact_relationship: "",
   notes: "",
+  rate_weekday: "",
+  rate_saturday: "",
+  rate_sunday: "",
+  rate_public_holiday: "",
 };
 
 interface AddClientDialogProps {
@@ -80,6 +88,10 @@ export function AddClientDialog({ open, onClose }: AddClientDialogProps) {
         emergency_contact_phone: data.emergency_contact_phone || null,
         emergency_contact_relationship: data.emergency_contact_relationship || null,
         notes: data.notes || null,
+        rate_weekday: data.rate_weekday ? parseFloat(data.rate_weekday) : null,
+        rate_saturday: data.rate_saturday ? parseFloat(data.rate_saturday) : null,
+        rate_sunday: data.rate_sunday ? parseFloat(data.rate_sunday) : null,
+        rate_public_holiday: data.rate_public_holiday ? parseFloat(data.rate_public_holiday) : null,
       });
       if (error) throw error;
     },
@@ -188,6 +200,17 @@ export function AddClientDialog({ open, onClose }: AddClientDialogProps) {
               rows={2}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-300 resize-none"
             />
+          </div>
+
+          {/* Pricing / Rates */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Hourly Rates ($/hr)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Weekday Rate" value={form.rate_weekday || ""} onChange={(v) => update("rate_weekday", v)} placeholder="e.g. 60.00" type="number" />
+            <Field label="Saturday Rate" value={form.rate_saturday || ""} onChange={(v) => update("rate_saturday", v)} placeholder="e.g. 90.00" type="number" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Sunday Rate" value={form.rate_sunday || ""} onChange={(v) => update("rate_sunday", v)} placeholder="e.g. 120.00" type="number" />
+            <Field label="Public Holiday Rate" value={form.rate_public_holiday || ""} onChange={(v) => update("rate_public_holiday", v)} placeholder="e.g. 120.00" type="number" />
           </div>
 
           {/* Emergency Contact */}

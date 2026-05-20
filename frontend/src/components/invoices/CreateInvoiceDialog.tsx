@@ -20,11 +20,18 @@ function dayOfWeekName(dateStr: string): string {
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d];
 }
 
-function rateForDate(dateStr: string): number {
+interface ClientRates {
+  rate_weekday: number | null;
+  rate_saturday: number | null;
+  rate_sunday: number | null;
+  rate_public_holiday: number | null;
+}
+
+function rateForDate(dateStr: string, clientRates?: ClientRates | null): number {
   const d = getDay(parseISO(dateStr));
-  if (d === 0) return 120; // Sunday
-  if (d === 6) return 90;  // Saturday
-  return 60;               // Weekday
+  if (d === 0) return clientRates?.rate_sunday ?? 0;          // Sunday
+  if (d === 6) return clientRates?.rate_saturday ?? 0;        // Saturday
+  return clientRates?.rate_weekday ?? 0;                       // Weekday
 }
 
 function parseHours(start: string, end: string): number {
@@ -85,7 +92,7 @@ export function CreateInvoiceDialog({ open, onClose }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, plan_manager, address, suburb, state, postcode")
+        .select("id, first_name, last_name, plan_manager, address, suburb, state, postcode, rate_weekday, rate_saturday, rate_sunday, rate_public_holiday")
         .order("first_name");
       if (error) throw error;
       return data;
@@ -113,10 +120,19 @@ export function CreateInvoiceDialog({ open, onClose }: Props) {
   const updateLine = (id: string, field: keyof ServiceLine, value: string) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
 
-  // Compute amounts aligned with lines array
+  // Compute amounts aligned with lines array — using client-specific rates
+  const clientRates: ClientRates | null = selectedClient ? {
+    rate_weekday: selectedClient.rate_weekday,
+    rate_saturday: selectedClient.rate_saturday,
+    rate_sunday: selectedClient.rate_sunday,
+    rate_public_holiday: selectedClient.rate_public_holiday,
+  } : null;
+
+  const hasRates = clientRates && (clientRates.rate_weekday != null || clientRates.rate_saturday != null || clientRates.rate_sunday != null);
+
   const lineAmounts = lines.map((l) => {
     const hrs = parseHours(l.startTime, l.endTime);
-    const rate = rateForDate(l.date);
+    const rate = rateForDate(l.date, clientRates);
     return { hrs, rate, amount: hrs * rate };
   });
   const subtotal = lineAmounts.reduce((s, l) => s + l.amount, 0);
@@ -322,11 +338,20 @@ export function CreateInvoiceDialog({ open, onClose }: Props) {
           </div>
 
           {/* Rate legend */}
-          <div className="flex gap-4 text-[11px] text-muted-foreground">
-            <span>Mon–Fri: <strong className="text-foreground">$60/hr</strong></span>
-            <span>Saturday: <strong className="text-foreground">$90/hr</strong></span>
-            <span>Sunday: <strong className="text-foreground">$120/hr</strong></span>
-          </div>
+          {selectedClient && hasRates ? (
+            <div className="flex gap-4 text-[11px] text-muted-foreground">
+              <span>Mon–Fri: <strong className="text-foreground">${clientRates?.rate_weekday ?? 0}/hr</strong></span>
+              <span>Saturday: <strong className="text-foreground">${clientRates?.rate_saturday ?? 0}/hr</strong></span>
+              <span>Sunday: <strong className="text-foreground">${clientRates?.rate_sunday ?? 0}/hr</strong></span>
+              {clientRates?.rate_public_holiday != null && (
+                <span>Public Holiday: <strong className="text-foreground">${clientRates.rate_public_holiday}/hr</strong></span>
+              )}
+            </div>
+          ) : selectedClient && !hasRates ? (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-700">
+              No rates configured for this client. Go to Clients → Edit to set hourly rates.
+            </div>
+          ) : null}
 
           <button
             onClick={() => createMutation.mutate()}

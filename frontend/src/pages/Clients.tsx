@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { Plus, Search, UserCircle, Users, ChevronRight, ChevronLeft, Phone, MapPin, Calendar, FileText, Heart, FolderOpen, AlertTriangle, Clock, Edit, Save, X, Loader2, Activity, Shield, Mail, FileCheck, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Plus, Search, UserCircle, Users, ChevronRight, ChevronLeft, Phone, MapPin, Calendar, FileText, Heart, FolderOpen, AlertTriangle, Clock, Edit, Save, X, Loader2, Activity, Shield, Mail, FileCheck, PanelLeftClose, PanelLeft, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -537,6 +537,28 @@ function OverviewTab({ client, assignedStaff, incidents, shifts, isEditing, edit
             {client.plan_manager && <InfoRow label="Plan Manager" value={client.plan_manager} />}
             {client.support_coordinator && <InfoRow label="Support Coordinator" value={client.support_coordinator} />}
           </div>
+        </div>
+
+        {/* Pricing / Hourly Rates */}
+        <div className="bg-emerald-50 rounded-2xl p-4 sm:p-5 border border-emerald-100">
+          <h3 className="text-xs sm:text-sm font-bold text-emerald-700 uppercase tracking-wider mb-3 sm:mb-4 flex items-center gap-2">
+            <DollarSign className="h-4 w-4" /> Hourly Rates
+          </h3>
+          {isEditing ? (
+            <div className="grid grid-cols-2 gap-3">
+              <EditableField label="Weekday Rate" value={editData.rate_weekday ?? ""} onChange={(v: string) => setEditData({...editData, rate_weekday: v ? parseFloat(v) : null})} type="number" />
+              <EditableField label="Saturday Rate" value={editData.rate_saturday ?? ""} onChange={(v: string) => setEditData({...editData, rate_saturday: v ? parseFloat(v) : null})} type="number" />
+              <EditableField label="Sunday Rate" value={editData.rate_sunday ?? ""} onChange={(v: string) => setEditData({...editData, rate_sunday: v ? parseFloat(v) : null})} type="number" />
+              <EditableField label="Public Holiday Rate" value={editData.rate_public_holiday ?? ""} onChange={(v: string) => setEditData({...editData, rate_public_holiday: v ? parseFloat(v) : null})} type="number" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <InfoRow label="Weekday" value={client.rate_weekday != null ? `${Number(client.rate_weekday).toFixed(2)}/hr` : "Not set"} />
+              <InfoRow label="Saturday" value={client.rate_saturday != null ? `${Number(client.rate_saturday).toFixed(2)}/hr` : "Not set"} />
+              <InfoRow label="Sunday" value={client.rate_sunday != null ? `${Number(client.rate_sunday).toFixed(2)}/hr` : "Not set"} />
+              <InfoRow label="Public Holiday" value={client.rate_public_holiday != null ? `${Number(client.rate_public_holiday).toFixed(2)}/hr` : "Not set"} />
+            </div>
+          )}
         </div>
       </div>
 
