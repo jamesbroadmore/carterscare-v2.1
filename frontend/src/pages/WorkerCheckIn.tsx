@@ -338,9 +338,10 @@ export default function WorkerCheckIn() {
       // Save case note if linked to staff
       if (myStaff?.staffId) {
         const client = clientList.find((c: any) => fullName(c) === activeCheckin.client_name);
+        if (!client?.id) throw new Error("Could not resolve client for case note. Please write the note manually from the Notes page.");
         const { error: noteErr } = await supabase.from("case_notes").insert({
           staff_id: myStaff.staffId,
-          client_id: client?.id || null,
+          client_id: client.id,
           category: "general",
           content: note.trim(),
         });
