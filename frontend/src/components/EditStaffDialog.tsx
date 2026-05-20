@@ -141,22 +141,22 @@ export function EditStaffDialog({ open, onClose, staff }: EditStaffDialogProps) 
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Create account mutation
+  // Create account mutation (using signUp instead of edge function)
   const createAccountMutation = useMutation({
     mutationFn: async () => {
       if (!staff || !newPassword) return;
-      const { data: result, error } = await supabase.functions.invoke("manage-users", {
-        body: {
-          action: "invite",
-          email: staff.email,
-          password: newPassword,
-          display_name: `${staff.first_name} ${staff.last_name}`,
-          role: newSystemRole,
-          staff_id: staff.id,
+      const { error } = await supabase.auth.signUp({
+        email: staff.email,
+        password: newPassword,
+        options: {
+          data: {
+            display_name: `${staff.first_name} ${staff.last_name}`,
+            role: newSystemRole,
+            staff_id: staff.id,
+          },
         },
       });
       if (error) throw error;
-      if (result?.error) throw new Error(result.error);
     },
     onSuccess: () => {
       toast.success("Login account created!");
@@ -168,19 +168,12 @@ export function EditStaffDialog({ open, onClose, staff }: EditStaffDialogProps) 
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Update role mutation
+  // Update role mutation (update staff record directly)
   const updateRoleMutation = useMutation({
     mutationFn: async (role: string) => {
       if (!staff?.user_id) return;
-      const { data: result, error } = await supabase.functions.invoke("manage-users", {
-        body: {
-          action: "update_role",
-          user_id: staff.user_id,
-          role,
-        },
-      });
+      const { error } = await supabase.from("staff").update({ role }).eq("user_id", staff.user_id);
       if (error) throw error;
-      if (result?.error) throw new Error(result.error);
     },
     onSuccess: () => {
       toast.success("System role updated!");
