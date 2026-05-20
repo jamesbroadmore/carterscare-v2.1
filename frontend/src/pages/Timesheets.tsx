@@ -34,7 +34,7 @@ export default function Timesheets() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("timesheets")
-        .select("*, staff:staff_id(first_name, last_name, preferred_name, email, hourly_rate), client:client_id(first_name, last_name, preferred_name)")
+        .select("*, staff:staff_id(first_name, last_name, preferred_name, email), client:client_id(first_name, last_name, preferred_name)")
         .order("shift_date", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -53,7 +53,7 @@ export default function Timesheets() {
         .update({ 
           status, 
           approved_at: status === "approved" ? new Date().toISOString() : null,
-          approval_note: note || null 
+          notes: note || null 
         })
         .in("id", ids);
       if (error) throw error;

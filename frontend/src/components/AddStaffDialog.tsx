@@ -77,8 +77,13 @@ export function AddStaffDialog({ open, onClose }: AddStaffDialogProps) {
       }).select("id").single();
       if (error) throw error;
 
-      // 2. Create user account if requested (using signUp — no edge function needed)
+      // 2. Create user account if requested
+      // Note: signUp from the current session would log out the admin,
+      // so we save and restore the session around the call.
       if (data.create_account && data.password && data.email) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const currentSession = sessionData?.session;
+
         const { error: signUpError } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
@@ -90,6 +95,15 @@ export function AddStaffDialog({ open, onClose }: AddStaffDialogProps) {
             },
           },
         });
+
+        // Restore admin session immediately after signUp
+        if (currentSession) {
+          await supabase.auth.setSession({
+            access_token: currentSession.access_token,
+            refresh_token: currentSession.refresh_token,
+          });
+        }
+
         if (signUpError) throw signUpError;
       }
     },

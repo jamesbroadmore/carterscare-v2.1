@@ -177,7 +177,7 @@ export default function StaffHR() {
             </div>
           ) : filteredStaff.length === 0 ? (
             <EmptyState
-              icon={<Users className="h-10 w-10 text-slate-300" />}
+              icon={Users}
               title="No staff found"
               description="Add staff members or adjust your search."
             />

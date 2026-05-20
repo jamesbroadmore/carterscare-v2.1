@@ -712,7 +712,7 @@ function ScheduleTab({ client, shifts }: any) {
                       <p className="text-xs font-bold text-teal-700">
                         {new Date(shift.start_time).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })} - {new Date(shift.end_time).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}
                       </p>
-                      <p className="text-xs text-teal-600">{shift.service_type || "Service"}</p>
+                      <p className="text-xs text-teal-600">Service</p>
                       {shift.staff && <p className="text-xs text-slate-500">{shift.staff.first_name}</p>}
                     </div>
                   ))}
@@ -749,7 +749,7 @@ function ScheduleTab({ client, shifts }: any) {
                 {dayShifts.length > 0 ? dayShifts.map((shift: any) => (
                   <div key={shift.id} className="p-2.5 rounded-lg bg-teal-100 border border-teal-200 cursor-pointer hover:bg-teal-200 transition-colors">
                     <p className="text-xs font-bold text-teal-700">{new Date(shift.start_time).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })} - {new Date(shift.end_time).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}</p>
-                    <p className="text-xs text-teal-600 mt-1">{shift.service_type || "Service"}</p>
+                    <p className="text-xs text-teal-600 mt-1">Service</p>
                     {shift.staff && <p className="text-xs text-slate-500 mt-1">{shift.staff.first_name}</p>}
                   </div>
                 )) : (

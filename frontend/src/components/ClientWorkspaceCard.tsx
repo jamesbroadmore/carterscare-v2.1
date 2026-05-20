@@ -595,7 +595,7 @@ function ScheduleTab({ client, shifts }: any) {
                         {" - "}
                         {new Date(shift.end_time).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}
                       </p>
-                      <p className="text-xs text-teal-600 mt-1">{shift.service_type || "Service"}</p>
+                      <p className="text-xs text-teal-600 mt-1">Service</p>
                       {shift.staff && (
                         <p className="text-xs text-slate-500 mt-1">
                           {shift.staff.first_name} {shift.staff.last_name}

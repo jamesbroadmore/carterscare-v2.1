@@ -141,10 +141,13 @@ export function EditStaffDialog({ open, onClose, staff }: EditStaffDialogProps) 
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Create account mutation (using signUp instead of edge function)
+  // Create account mutation — save/restore admin session to avoid logout
   const createAccountMutation = useMutation({
     mutationFn: async () => {
       if (!staff || !newPassword) return;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentSession = sessionData?.session;
+
       const { error } = await supabase.auth.signUp({
         email: staff.email,
         password: newPassword,
@@ -156,6 +159,15 @@ export function EditStaffDialog({ open, onClose, staff }: EditStaffDialogProps) 
           },
         },
       });
+
+      // Restore admin session immediately
+      if (currentSession) {
+        await supabase.auth.setSession({
+          access_token: currentSession.access_token,
+          refresh_token: currentSession.refresh_token,
+        });
+      }
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -168,11 +180,11 @@ export function EditStaffDialog({ open, onClose, staff }: EditStaffDialogProps) 
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Update role mutation (update staff record directly)
+  // Update role mutation (update user_roles table)
   const updateRoleMutation = useMutation({
     mutationFn: async (role: string) => {
       if (!staff?.user_id) return;
-      const { error } = await supabase.from("staff").update({ role }).eq("user_id", staff.user_id);
+      const { error } = await supabase.from("user_roles").update({ role }).eq("user_id", staff.user_id);
       if (error) throw error;
     },
     onSuccess: () => {
