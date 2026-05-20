@@ -151,7 +151,7 @@ export default function Dashboard() {
     queryKey: ["dashboard-notes-today"],
     queryFn: async () => {
       const today = getPerthDate();
-      const { count } = await supabase.from("case_notes").select("*", { count: "exact", head: true }).gte("note_date", `${today}T00:00:00`).lte("note_date", `${today}T23:59:59`);
+      const { count } = await supabase.from("case_notes").select("*", { count: "exact", head: true }).eq("note_date", today);
       return count ?? 0;
     },
   });

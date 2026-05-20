@@ -28,20 +28,112 @@ async function callManageUsers(action: string, body: Record<string, unknown> = {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ action, ...body }),
+  if (action === "list") {
+    // Get staff records and build user list from staff + current session
+    const { data: allStaff, error: staffErr } = await supabase
+      .from("staff")
+      .select("id, first_name, last_name, preferred_name, email, role, user_id")
+      .order("first_name");
+    if (staffErr) throw staffErr;
+
+    const users: UserRecord[] = [];
+    const unlinkedStaff: StaffRecord[] = [];
+
+    // Add current user
+    const currentUser = session.user;
+    const currentStaff = allStaff?.find((s: any) => s.user_id === currentUser.id);
+    users.push({
+      id: currentUser.id,
+      email: currentUser.email || "",
+      display_name: currentUser.user_metadata?.display_name || currentUser.email || "Unknown",
+      role: currentUser.user_metadata?.role || "admin",
+      staff_id: currentStaff?.id || null,
+      staff_name: currentStaff ? `${currentStaff.first_name} ${currentStaff.last_name}` : null,
+      created_at: currentUser.created_at || new Date().toISOString(),
+    });
+
+    // Add staff with user_id that aren't the current user
+    for (const s of allStaff || []) {
+      if (s.user_id && s.user_id !== currentUser.id) {
+        users.push({
+          id: s.user_id,
+          email: s.email || "",
+          display_name: `${s.first_name} ${s.last_name}`,
+          role: s.role || "user",
+          staff_id: s.id,
+          staff_name: `${s.first_name} ${s.last_name}`,
+          created_at: "",
+        });
+      }
+      if (!s.user_id) {
+        unlinkedStaff.push({ id: s.id, first_name: s.first_name, last_name: s.last_name, preferred_name: s.preferred_name, email: s.email });
+      }
     }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed");
-  return data;
+
+    return { users, unlinked_staff: unlinkedStaff };
+  }
+
+  if (action === "invite") {
+    const { error } = await supabase.auth.signUp({
+      email: body.email as string,
+      password: body.password as string,
+      options: {
+        data: {
+          display_name: body.display_name as string,
+          role: body.role as string,
+          staff_id: body.staff_id || null,
+        },
+      },
+    });
+    if (error) throw error;
+    // Link staff record if provided
+    if (body.staff_id) {
+      await supabase.from("staff").update({ user_id: session.user.id }).eq("id", body.staff_id);
+    }
+    return { success: true };
+  }
+
+  if (action === "link_staff") {
+    // Update staff record's user_id
+    if (body.staff_id) {
+      const { error } = await supabase.from("staff").update({ user_id: body.user_id as string }).eq("id", body.staff_id as string);
+      if (error) throw error;
+    }
+    // Unlink old staff if setting to null
+    if (!body.staff_id) {
+      const { error } = await supabase.from("staff").update({ user_id: null }).eq("user_id", body.user_id as string);
+      if (error) throw error;
+    }
+    return { success: true };
+  }
+
+  if (action === "update_role") {
+    // Update role in staff record
+    const { error } = await supabase.from("staff").update({ role: body.role as string }).eq("user_id", body.user_id as string);
+    if (error) throw error;
+    return { success: true };
+  }
+
+  if (action === "update_user") {
+    // Can only update own profile without admin API
+    if (body.user_id === session.user.id) {
+      const updates: Record<string, unknown> = {};
+      if (body.display_name) updates.data = { ...session.user.user_metadata, display_name: body.display_name };
+      if (body.email) updates.email = body.email;
+      if (body.password) updates.password = body.password;
+      const { error } = await supabase.auth.updateUser(updates as any);
+      if (error) throw error;
+    } else {
+      throw new Error("Editing other users requires a server-side admin function. Please update the user's staff record directly.");
+    }
+    return { success: true };
+  }
+
+  if (action === "delete") {
+    throw new Error("Deleting users requires a server-side admin function. Remove the staff record instead.");
+  }
+
+  throw new Error(`Unknown action: ${action}`);
 }
 
 export function UserManagementSettings() {

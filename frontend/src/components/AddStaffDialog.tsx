@@ -77,20 +77,20 @@ export function AddStaffDialog({ open, onClose }: AddStaffDialogProps) {
       }).select("id").single();
       if (error) throw error;
 
-      // 2. Create user account if requested
-      if (data.create_account && data.password) {
-        const { data: result, error: fnError } = await supabase.functions.invoke("manage-users", {
-          body: {
-            action: "invite",
-            email: data.email,
-            password: data.password,
-            display_name: `${data.first_name} ${data.last_name}`,
-            role: data.system_role || "user",
-            staff_id: staffRecord.id,
+      // 2. Create user account if requested (using signUp — no edge function needed)
+      if (data.create_account && data.password && data.email) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              display_name: `${data.first_name} ${data.last_name}`,
+              role: data.system_role || "user",
+              staff_id: staffRecord.id,
+            },
           },
         });
-        if (fnError) throw fnError;
-        if (result?.error) throw new Error(result.error);
+        if (signUpError) throw signUpError;
       }
     },
     onSuccess: () => {

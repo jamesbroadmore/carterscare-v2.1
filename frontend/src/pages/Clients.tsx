@@ -766,11 +766,35 @@ function ScheduleTab({ client, shifts }: any) {
 // Notes Tab
 function NotesTab({ client, notes, incidents, isLoading }: any) {
   const [noteText, setNoteText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleAddNote = async () => {
+    if (!noteText.trim() || !client?.id) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("case_notes").insert({
+        client_id: client.id,
+        content: noteText.trim(),
+        category: "general",
+        note_date: new Date().toISOString().slice(0, 10),
+      });
+      if (error) throw error;
+      setNoteText("");
+      queryClient.invalidateQueries({ queryKey: ["client-notes", client.id] });
+      toast.success("Note added");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add note");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4 sm:space-y-6">
       <div className="bg-slate-50 rounded-2xl p-3 sm:p-4">
         <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Add a quick note..." className="w-full h-16 sm:h-20 p-3 rounded-xl border resize-none text-sm" />
-        <div className="flex justify-end mt-2"><PrimaryButton disabled={!noteText.trim()} className="text-xs sm:text-sm"><Plus className="h-4 w-4" /> Add Note</PrimaryButton></div>
+        <div className="flex justify-end mt-2"><PrimaryButton disabled={!noteText.trim() || saving} onClick={handleAddNote} className="text-xs sm:text-sm">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add Note</PrimaryButton></div>
       </div>
 
       {incidents.length > 0 && (
