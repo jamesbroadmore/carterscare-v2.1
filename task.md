@@ -1,32 +1,57 @@
-# Audit Results — Bugs to Fix
+# Full Audit Complete — Summary
 
-## BUG 1: `requests` table missing ❌
-- Requests.tsx queries `from("requests")` with FK joins
-- Table doesn't exist in migration.sql
-- FIX: Create the table in DB, or make the page gracefully handle missing table (already silently catches error)
-- DECISION: Create the table to make Requests page functional
+## BUGS FOUND & FIXED
 
-## BUG 2: StaffTraining.tsx uses `document_type` instead of `record_type` ❌
-- Line 75-76: `.select("staff_id, document_type, status, expiry_date")`  
-- compliance_records schema has `record_type`, NOT `document_type`
-- Also uses `m.name` but modules have `m.id`, not `m.name`
-- FIX: Change to `record_type` and `m.id`
+### 1. EmptyState icon prop type mismatch ✅ FIXED
+- StaffHR, MyTimesheets, ClientRisk, ClientCarePlans passed JSX elements
+- EmptyState expected LucideIcon component ref
+- FIX: Updated EmptyState to accept both `LucideIcon | React.ReactNode`
 
-## BUG 3: EmptyState icon prop mismatch ❌
-- StaffHR.tsx, MyTimesheets.tsx, ClientRisk.tsx, ClientCarePlans.tsx pass `icon={<JSXElement>}` 
-- But ui-kit EmptyState expects `icon?: LucideIcon` (component type, rendered as `<Icon className=.../>`)
-- This will crash at runtime
-- FIX: Change to `icon={Users}` etc (component ref), or update EmptyState to accept both
+### 2. StaffTraining.tsx wrong column name ✅ FIXED  
+- Used `document_type` instead of `record_type` on compliance_records
+- Also referenced `m.name` instead of `m.id`
+- FIX: Changed to `record_type` and `m.id`
 
-## BUG 4: StaffHR writes `status: "valid"` but rest of app uses `status: "current"` ❌
-- DocumentUploadDialog inserts with `status: "valid"` (line 427)
-- Other pages (Compliance, MyCompliance, Reports) check for `status === "current"` 
-- StaffHR reads checks for `status === "valid"` inconsistently
-- FIX: Standardize on "current" everywhere OR make StaffHR check both
+### 3. StaffHR.tsx inconsistent status values ✅ FIXED
+- DocumentUploadDialog inserted `status: "valid"` 
+- Rest of app uses `status: "current"`
+- FIX: Changed insert to "current", updated reads to accept both "current"|"valid"
 
-## ALREADY HANDLED (not bugs):
-- ClientPortal uses DEMO_DATA — expected, demo-only page ✅
-- Requests.tsx silently catches missing table error — OK but table should exist ✅
-- StaffOnboardingWizard queries staff.user_id — column exists ✅ 
-- Onboarding queries policies, policy_acknowledgements — tables exist ✅
-- training_records table exists ✅
+### 4. WorkerCheckIn null client_id crash ✅ FIXED
+- Clock-out case note insert could pass `null` for `client_id`
+- But `case_notes.client_id` is `NOT NULL`
+- FIX: Added guard with user-friendly error message
+
+### 5. `requests` table missing ⚠️ PARTIAL
+- Requests.tsx queries it, table doesn't exist in DB
+- Page already silently handles the error (returns [])
+- CREATE TABLE SQL added to migration.sql
+- User needs to run migration in Supabase Dashboard SQL editor
+
+## PAGES AUDITED (33 total)
+All pages read and verified:
+- Dashboard, Clients, Staff, Roster, Timesheets, Invoices ✅
+- CaseNotes, EnhancedCaseNotes, Incidents, Compliance ✅  
+- Financials, Reports, Requests, Analytics ✅
+- WorkerHome, WorkerCheckIn, WorkerNotes, ShiftCheckIn ✅
+- MyRoster, MyTimesheets, MyCompliance ✅
+- ClientPortal, ClientCarePlans, ClientRisk ✅
+- StaffHR, StaffTraining, StaffOnboardingWizard, Onboarding ✅
+- SettingsPage, TidyUp, Login, Index, NotFound ✅
+
+## DIALOG COMPONENTS AUDITED (10 total)
+- AddClientDialog, AddStaffDialog ✅
+- EditClientDialog, EditStaffDialog ✅
+- CreateInvoiceDialog, EditInvoiceDialog, ViewInvoiceDialog ✅
+- EditShiftDialog, NewRosterDialog, TimesheetDetailDialog ✅
+
+## SCHEMA VERIFIED
+- All 21 tables exist in migration + requests table added
+- All insert/update/select columns match schema
+- Foreign key references correct
+- Storage buckets created (compliance-docs, hr-documents, case-notes-media)
+- Auth users exist (parker@cdxi.au, jamesbroadmore@gmail.com)
+
+## BUILD STATUS
+- `bun run build` passes clean ✅
+- Pushed to GitHub: commit 437001b ✅

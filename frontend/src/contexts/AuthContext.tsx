@@ -116,13 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    // If already resolved via demo/client session (first useEffect), skip initial getSession
+    const alreadyResolved = localStorage.getItem("demo_mode") === "true" || !!localStorage.getItem("client_portal_session");
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (!mounted) return;
         setSession(session);
         if (session?.user) {
-          // Fetch role BEFORE setting loading=false so ProtectedRoute never sees role=null
           await fetchRole(session.user.id);
         } else {
           setRole(null);
@@ -131,14 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      if (session?.user) {
-        await fetchRole(session.user.id);
-      }
-      if (mounted) setLoading(false);
-    });
+    if (!alreadyResolved) {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!mounted) return;
+        setSession(session);
+        if (session?.user) {
+          await fetchRole(session.user.id);
+        }
+        if (mounted) setLoading(false);
+      });
+    }
 
     return () => {
       mounted = false;

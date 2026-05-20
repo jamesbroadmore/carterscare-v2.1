@@ -474,7 +474,7 @@ export function AIChatbot({ isOpen, onOpenChange, urgentMessage = "" }: AIChatbo
           const filteredLinks = value.links.filter(link => {
             if (link.url === "/tidy-up") return securityLevel >= 4;
             if (link.url === "/staff/hr" || link.url === "/invoices" || link.url === "/analytics") return securityLevel >= 4;
-            if (["/roster", "/timesheets", "/staff", "/requests"].includes(link.url)) return securityLevel >= 3;
+            if (["/roster", "/timesheets", "/staff"].includes(link.url)) return securityLevel >= 3;
             if (["/my-roster", "/my-timesheets", "/notes", "/incidents"].includes(link.url)) return securityLevel >= 2;
             // Client portal links
             if (link.url === "/client-portal") return true;

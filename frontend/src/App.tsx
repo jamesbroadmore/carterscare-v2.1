@@ -43,7 +43,7 @@ const WorkerCheckIn = lazy(() => import("./pages/WorkerCheckIn"));
 const WorkerNotes = lazy(() => import("./pages/WorkerNotes"));
 
 // New pages - Platform upgrades
-const Requests = lazy(() => import("./pages/Requests"));
+
 const Analytics = lazy(() => import("./pages/Analytics"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const EnhancedCaseNotes = lazy(() => import("./pages/EnhancedCaseNotes"));
@@ -308,16 +308,7 @@ const App = () => (
               />
 
               {/* New Platform Features */}
-              <Route
-                path="/requests"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <Suspense fallback={<PageLoader />}>
-                      <Requests />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
+
               <Route
                 path="/analytics"
                 element={

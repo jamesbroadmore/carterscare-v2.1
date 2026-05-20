@@ -41,16 +41,23 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
-  // Already logged in — redirect
-  if (!authLoading) {
-    if (clientPortalSession) return <Navigate to="/client-portal" replace />;
-    if (isDemoMode) {
-      if (demoRole === "support_worker") return <Navigate to="/worker" replace />;
-      if (demoRole === "client") return <Navigate to="/client-portal" replace />;
-      return <Navigate to="/" replace />;
-    }
-    if (session) return <Navigate to="/" replace />;
+  // Show spinner while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 30%, #dbeafe 70%, #e0f2fe 100%)" }}>
+        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      </div>
+    );
   }
+
+  // Already logged in — redirect
+  if (clientPortalSession) return <Navigate to="/client-portal" replace />;
+  if (isDemoMode) {
+    if (demoRole === "support_worker") return <Navigate to="/worker" replace />;
+    if (demoRole === "client") return <Navigate to="/client-portal" replace />;
+    return <Navigate to="/" replace />;
+  }
+  if (session) return <Navigate to="/" replace />;
 
   // --- Staff login ---
   const validateEmail = (v: string) => !v ? "Email is required" : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "Enter a valid email" : undefined;
