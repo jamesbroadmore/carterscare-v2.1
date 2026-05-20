@@ -498,16 +498,18 @@ export function EmptyState({
   description,
   action,
 }: {
-  icon?: LucideIcon;
+  icon?: LucideIcon | React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
 }) {
+  // Support both LucideIcon (component ref) and ReactNode (JSX element)
+  const isComponent = typeof Icon === "function";
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       {Icon && (
         <div className="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4">
-          <Icon className="h-8 w-8 text-slate-300" />
+          {isComponent ? <Icon className="h-8 w-8 text-slate-300" /> : Icon}
         </div>
       )}
       <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>

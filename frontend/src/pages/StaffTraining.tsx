@@ -72,8 +72,8 @@ export default function StaffTraining() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compliance_records")
-        .select("staff_id, document_type, status, expiry_date")
-        .in("document_type", TRAINING_MODULES.flatMap(c => c.modules.map(m => m.name)));
+        .select("staff_id, record_type, status, expiry_date")
+        .in("record_type", TRAINING_MODULES.flatMap(c => c.modules.map(m => m.id)));
       if (error) throw error;
       return data || [];
     },

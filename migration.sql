@@ -554,3 +554,24 @@ END $$;
 
 -- Also allow anon read for service_categories (public price lists)
 CREATE POLICY "allow_anon_read_service_categories" ON public.service_categories FOR SELECT TO anon USING (true);
+
+-- requests (client/staff requests)
+CREATE TABLE IF NOT EXISTS public.requests (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title text NOT NULL,
+  description text,
+  type text NOT NULL DEFAULT 'other',
+  status text NOT NULL DEFAULT 'pending',
+  priority text NOT NULL DEFAULT 'medium',
+  requester_type text DEFAULT 'client',
+  requester_id uuid REFERENCES public.clients(id),
+  assigned_to uuid REFERENCES public.staff(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  notes text
+);
+
+ALTER TABLE public.requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS allow_all ON public.requests;
+CREATE POLICY allow_all ON public.requests FOR ALL TO authenticated USING (true) WITH CHECK (true);

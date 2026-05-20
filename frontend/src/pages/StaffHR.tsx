@@ -69,7 +69,7 @@ export default function StaffHR() {
     const docs = complianceData.filter((c: any) => c.staff_id === staffId);
     const expired = docs.filter((d: any) => d.status === "expired").length;
     const expiring = docs.filter((d: any) => d.status === "expiring_soon").length;
-    const valid = docs.filter((d: any) => d.status === "valid").length;
+    const valid = docs.filter((d: any) => d.status === "current" || d.status === "valid").length;
     return { expired, expiring, valid, total: docs.length, docs };
   };
 
@@ -113,7 +113,7 @@ export default function StaffHR() {
             </div>
             <div>
               <p className="text-xl font-bold text-foreground">
-                {complianceData.filter((c: any) => c.status === "valid").length}
+                {complianceData.filter((c: any) => c.status === "current" || c.status === "valid").length}
               </p>
               <p className="text-xs text-muted-foreground">Valid Docs</p>
             </div>
@@ -252,7 +252,7 @@ export default function StaffHR() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {HR_DOC_TYPES.map((docType) => {
                             const existingDoc = staffDocs.find((d: any) => d.record_type === docType.key);
-                            const statusColor = existingDoc?.status === "valid" 
+                            const statusColor = (existingDoc?.status === "current" || existingDoc?.status === "valid") 
                               ? "border-emerald-200 bg-emerald-50" 
                               : existingDoc?.status === "expiring_soon"
                                 ? "border-orange-200 bg-orange-50"
@@ -275,11 +275,11 @@ export default function StaffHR() {
                                       {existingDoc ? (
                                         <div className="flex items-center gap-2 mt-1">
                                           <span className={`text-xs ${
-                                            existingDoc.status === "valid" ? "text-emerald-600" :
+                                            (existingDoc.status === "current" || existingDoc.status === "valid") ? "text-emerald-600" :
                                             existingDoc.status === "expiring_soon" ? "text-orange-600" :
                                             "text-red-600"
                                           }`}>
-                                            {existingDoc.status === "valid" ? "Valid" : 
+                                            {(existingDoc.status === "current" || existingDoc.status === "valid") ? "Valid" : 
                                              existingDoc.status === "expiring_soon" ? "Expiring Soon" : "Expired"}
                                           </span>
                                           {existingDoc.expiry_date && (
@@ -424,7 +424,7 @@ function DocumentUploadDialog({
         record_name: docLabel,
         document_url: documentUrl,
         expiry_date: expiryDate,
-        status: "valid",
+        status: "current",
         notes: documentNumber ? `Document #: ${documentNumber}` : null,
       });
 
