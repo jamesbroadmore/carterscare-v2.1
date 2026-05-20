@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatPerthTime } from "@/lib/perth-time";
 import {
   CalendarDays, Clock, MapPin, User, ChevronLeft, ChevronRight,
   CheckCircle, AlertCircle, Play,
@@ -55,8 +56,8 @@ export default function MyRoster() {
       return (data || []).map((s: any) => ({
         id: s.id,
         date: s.shift_date,
-        start_time: s.start_time?.slice(0, 5) || "00:00",
-        end_time: s.end_time?.slice(0, 5) || "00:00",
+        start_time: s.start_time ? (s.start_time.length > 5 ? formatPerthTime(s.start_time) : s.start_time) : "00:00",
+        end_time: s.end_time ? (s.end_time.length > 5 ? formatPerthTime(s.end_time) : s.end_time) : "00:00",
         client_name: s.client ? `${s.client.first_name} ${s.client.last_name}` : "Unassigned",
         location: s.client?.address || "No address",
         status: s.status === "approved" ? "completed" : "upcoming",

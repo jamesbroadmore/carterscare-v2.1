@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatPerthTime } from "@/lib/perth-time";
 import { DEMO_DATA } from "@/contexts/DemoContext";
 import { format, parseISO, isAfter, startOfToday } from "date-fns";
 import { toast } from "sonner";
@@ -311,7 +312,7 @@ function ClientPortalUI({
                       </p>
                       <p className="text-sm text-slate-500 flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
-                        {upcomingVisits[0].start_time.slice(0, 5)} – {upcomingVisits[0].end_time.slice(0, 5)}
+                        {upcomingVisits[0].start_time.length > 5 ? formatPerthTime(upcomingVisits[0].start_time) : upcomingVisits[0].start_time} – {upcomingVisits[0].end_time.length > 5 ? formatPerthTime(upcomingVisits[0].end_time) : upcomingVisits[0].end_time}
                         <span className="text-slate-400">·</span>
                         {upcomingVisits[0].total_hours}h
                       </p>
@@ -399,7 +400,7 @@ function ClientPortalUI({
                           </p>
                           <p className="text-sm text-slate-500 flex items-center gap-1 flex-wrap">
                             <Clock className="h-3 w-3 flex-shrink-0" />
-                            {visit.start_time.slice(0, 5)} – {visit.end_time.slice(0, 5)}
+                            {visit.start_time.length > 5 ? formatPerthTime(visit.start_time) : visit.start_time} – {visit.end_time.length > 5 ? formatPerthTime(visit.end_time) : visit.end_time}
                             <span className="text-slate-300">·</span>
                             {visit.total_hours}h
                           </p>

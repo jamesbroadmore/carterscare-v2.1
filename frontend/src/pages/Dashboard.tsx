@@ -435,7 +435,7 @@ export default function Dashboard() {
                       {/* Time */}
                       <div className="text-right shrink-0">
                         <p className="text-sm font-semibold text-foreground">
-                          {shift.start_time ? shift.start_time.slice(0, 5) : "—"}
+                          {shift.start_time ? formatPerthTime(shift.start_time) : "—"}
                         </p>
                         {isToday && (
                           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
