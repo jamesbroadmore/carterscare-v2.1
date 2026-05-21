@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, type DemoRole } from "./DemoContext";
@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoRole, setDemoRole] = useState<DemoRole | null>(null);
   const [clientPortalSession, setClientPortalSession] = useState<ClientPortalSession | null>(null);
+  // Tracks whether loading was already resolved by the first useEffect (demo/client session)
+  const resolvedRef = useRef(false);
 
   const fetchRole = async (userId: string) => {
     try {
@@ -94,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         else if (demoUser.role === "support_worker") setRole("support_worker");
         // client role — no staff role
         setLoading(false);
+        resolvedRef.current = true;
         return;
       } catch {
         localStorage.removeItem("demo_mode");
@@ -107,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setClientPortalSession(JSON.parse(savedClientSession));
         setLoading(false);
+        resolvedRef.current = true;
         return;
       } catch {
         localStorage.removeItem("client_portal_session");
@@ -115,9 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // If already resolved via demo/client session, skip Supabase auth entirely
+    if (resolvedRef.current) return;
+
     let mounted = true;
-    // If already resolved via demo/client session (first useEffect), skip initial getSession
-    const alreadyResolved = localStorage.getItem("demo_mode") === "true" || !!localStorage.getItem("client_portal_session");
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -132,16 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    if (!alreadyResolved) {
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!mounted) return;
-        setSession(session);
-        if (session?.user) {
-          await fetchRole(session.user.id);
-        }
-        if (mounted) setLoading(false);
-      });
-    }
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      setSession(session);
+      if (session?.user) {
+        await fetchRole(session.user.id);
+      }
+      if (mounted) setLoading(false);
+    });
 
     return () => {
       mounted = false;
@@ -249,9 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSupportWorker = role === "support_worker";
   const isClient = !!clientPortalSession || demoRole === "client";
 
-  const demoUserRaw = isDemoMode && localStorage.getItem("demo_user")
-    ? JSON.parse(localStorage.getItem("demo_user")!)
-    : null;
+  const _rawDemoStr = isDemoMode ? localStorage.getItem("demo_user") : null;
+  const demoUserRaw = _rawDemoStr ? (() => { try { return JSON.parse(_rawDemoStr); } catch { return null; } })() : null;
 
   const effectiveUser = isDemoMode && demoUserRaw ? {
     id: demoUserRaw.id,

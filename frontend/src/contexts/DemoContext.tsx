@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 // Demo account for sales presentations
 // Role hierarchy: client < support_worker < manager < admin
@@ -128,8 +128,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     return DEMO_DATA[key];
   };
 
-  // Check for existing demo session on mount
-  useState(() => {
+  // Restore demo session on mount
+  useEffect(() => {
     const savedMode = localStorage.getItem("demo_mode");
     const savedUser = localStorage.getItem("demo_user");
     if (savedMode === "true" && savedUser) {
@@ -140,7 +140,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         disableDemoMode();
       }
     }
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <DemoContext.Provider value={{ isDemoMode, demoUser, enableDemoMode, disableDemoMode, getDemoData }}>

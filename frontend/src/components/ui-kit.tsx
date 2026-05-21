@@ -1,5 +1,6 @@
 import { LucideIcon, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useId } from "react";
 
 interface PageHeaderProps {
   title: string;
@@ -53,7 +54,7 @@ interface StatsRowProps {
 
 export function StatsRow({ stats }: StatsRowProps) {
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-${Math.min(stats.length, 4)} gap-4 mb-6`}>
+    <div className={`grid gap-4 mb-6 ${stats.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : stats.length === 3 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2"}`}>
       {stats.map((s, i) => (
         <motion.div
           key={i}
@@ -233,7 +234,8 @@ export function SearchInput({
   id?: string;
   "aria-label"?: string;
 }) {
-  const inputId = id || `search-input-${Math.random().toString(36).slice(2, 9)}`;
+  const generatedId = useId();
+  const inputId = id || `search-input-${generatedId}`;
   return (
     <div className={`relative ${className}`}>
       <svg 
