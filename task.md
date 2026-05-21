@@ -1,54 +1,95 @@
-# Full Audit Complete
+# CartersCare Audit & Fix Task
 
-## Bugs Found & Fixed
+## Status: IN PROGRESS
 
-### Critical
-1. **Timesheets.tsx** - Referenced `hourly_rate` column in staff select query — column doesn't exist. **FIXED**: removed from select.
-2. **Timesheets.tsx** - Referenced `approval_note` column in timesheets update — column doesn't exist. **FIXED**: changed to `notes`.
-3. **AddStaffDialog.tsx** - `supabase.auth.signUp()` from admin session logs out the admin. **FIXED**: save/restore session around signUp call.
-4. **EditStaffDialog.tsx** - Same signUp session issue. **FIXED**: save/restore session.
-5. **EditStaffDialog.tsx** - `updateRoleMutation` updated `staff.role` instead of `user_roles.role`. **FIXED**: changed to update `user_roles` table.
+## Missing Tables (404)
+- `shifts` - referenced by Clients.tsx:130, ClientWorkspaceCard.tsx:79
+- `notifications` - referenced by NotificationBell.tsx (4 queries)
+- `requests` - NOT referenced in code (0 usages) - low priority
 
-### Medium
-6. **Clients.tsx** - Referenced `shift.service_type` on timesheets — column doesn't exist. **FIXED**: hardcoded "Service".
-7. **ClientWorkspaceCard.tsx** - Same `service_type` issue. **FIXED**.
+## Bugs to Fix
+1. **ClientWorkspaceCard.tsx:79** - shifts query throws on error (no error guard) → fix to return []
+2. **NotificationBell.tsx** - all queries 404 on notifications table → fix with error guard
 
-### Known Graceful Fallbacks (already handled)
-8. **Clients.tsx** - Queries `shifts` table (doesn't exist) — has `console.warn` + returns `[]`
-9. **NotificationBell.tsx** - Queries `notifications` table (doesn't exist) — has `console.warn` + returns `[]`
-10. **Timesheets.tsx** - `createNotification()` will silently fail since notifications table doesn't exist — acceptable degradation
+## Tables Missing - SQL to Run in Supabase SQL Editor
+### shifts
+```sql
+CREATE TABLE IF NOT EXISTS public.shifts (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id uuid REFERENCES public.clients(id),
+  staff_id uuid REFERENCES public.staff(id),
+  start_time timestamptz NOT NULL,
+  end_time timestamptz NOT NULL,
+  service_type text,
+  status text DEFAULT 'scheduled',
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS allow_all ON public.shifts;
+CREATE POLICY allow_all ON public.shifts FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
 
-## Pages Audited (All Clean After Fixes)
-- [x] Dashboard.tsx — clean, proper queries, good UX
-- [x] Login.tsx — clean
-- [x] Staff.tsx — clean, good search/filter/CRUD
-- [x] StaffHR.tsx — clean, document management works
-- [x] StaffTraining.tsx — clean, queries compliance_records for training
-- [x] Clients.tsx — fixed service_type refs, shifts table fallback OK
-- [x] ClientCarePlans.tsx — clean, mock sections but functional
-- [x] ClientRisk.tsx — clean, calculates risk from incidents
-- [x] Roster.tsx — clean, uses timesheets as roster data
-- [x] Timesheets.tsx — fixed hourly_rate and approval_note bugs
-- [x] Invoices.tsx — clean, proper FK-safe delete, good workflow
-- [x] CaseNotes.tsx — clean, excellent template system
-- [x] Incidents.tsx — clean, supports client + work incidents
-- [x] Compliance.tsx — clean, proper schema usage
-- [x] Financials.tsx — clean, good stats aggregation
-- [x] Reports.tsx — clean, CSV export works
-- [x] Analytics.tsx — clean, time-range filtering works
-- [x] SettingsPage.tsx — clean, modular settings sections
-- [x] MyRoster.tsx — clean, worker-specific view
-- [x] WorkerHome.tsx — clean, good mobile UX
-- [x] AddStaffDialog.tsx — fixed signUp session issue
-- [x] EditStaffDialog.tsx — fixed signUp session + role update
-- [x] AddClientDialog.tsx — clean, proper schema mapping
-- [x] EditClientDialog.tsx — clean, staff assignment works
-- [x] NotificationBell.tsx — clean with graceful fallback
-- [x] ClientWorkspaceCard.tsx — fixed service_type ref
-- [x] AppLayout.tsx — clean
-- [x] AppSidebar.tsx — clean
+### notifications
+```sql
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  type text NOT NULL DEFAULT 'info',
+  title text NOT NULL,
+  message text NOT NULL,
+  link text,
+  read boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS allow_all ON public.notifications;
+CREATE POLICY allow_all ON public.notifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
 
-## DB State
-- All queries match actual schema columns
-- No TypeScript build errors
-- `shifts` and `notifications` tables don't exist but code degrades gracefully
+### requests
+```sql
+CREATE TABLE IF NOT EXISTS public.requests (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title text NOT NULL,
+  description text,
+  type text NOT NULL DEFAULT 'other',
+  status text NOT NULL DEFAULT 'pending',
+  priority text NOT NULL DEFAULT 'medium',
+  requester_type text DEFAULT 'client',
+  requester_id uuid REFERENCES public.clients(id),
+  assigned_to uuid REFERENCES public.staff(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  notes text
+);
+ALTER TABLE public.requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS allow_all ON public.requests;
+CREATE POLICY allow_all ON public.requests FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
+
+## Seed Data Needed
+All tables are empty. Need to generate via Supabase SQL editor.
+
+## Schema Column Verification
+- timesheets: shift_date, start_time, end_time, total_hours, status, notes, staff_id, client_id ✓
+- case_notes: content, note_date, client_id, staff_id, category ✓  
+- compliance_records: record_type, record_name, status, expiry_date, staff_id ✓
+- incidents: incident_type, incident_date, severity, status, description, client_id ✓
+- shifts: start_time, end_time, client_id, staff_id, service_type, status ✓
+
+## Done
+- [x] AuthContext fixed
+- [x] DemoContext fixed
+- [x] Identified missing tables: shifts, notifications, requests
+- [x] Column schema verified against migration.sql
+- [x] Confirmed Roster/MyRoster/ShiftCheckIn/WorkerCheckIn use timesheets/shift_checkins (not shifts)
+
+## Next Steps
+1. Fix ClientWorkspaceCard.tsx error handling for shifts
+2. Fix NotificationBell.tsx error handling for notifications
+3. Create SQL for missing tables (display to user for Supabase SQL editor)
+4. Create seed data SQL
+5. Push all fixes to GitHub

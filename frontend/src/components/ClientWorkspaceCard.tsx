@@ -66,8 +66,11 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
         .eq("client_id", client.id)
         .order("incident_date", { ascending: false })
         .limit(10);
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.warn("incidents query failed:", error.message);
+        return [];
+      }
+      return data ?? [];
     },
   });
 
@@ -82,8 +85,11 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
         .gte("start_time", new Date().toISOString().split("T")[0])
         .order("start_time")
         .limit(50);
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.warn("shifts query failed:", error.message);
+        return [];
+      }
+      return data ?? [];
     },
   });
 
