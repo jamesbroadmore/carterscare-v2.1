@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { Plus, Search, UserCircle, Users, ChevronRight, ChevronLeft, Phone, MapPin, Calendar, FileText, Heart, FolderOpen, AlertTriangle, Clock, Edit, Save, X, Loader2, Activity, Shield, Mail, FileCheck, PanelLeftClose, PanelLeft, DollarSign } from "lucide-react";
+import { Plus, Search, UserCircle, Users, ChevronRight, ChevronLeft, Phone, MapPin, Calendar, FileText, Heart, FolderOpen, AlertTriangle, Clock, Edit, Save, X, Loader2, Activity, Shield, Mail, FileCheck, PanelLeftClose, PanelLeft, DollarSign, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +23,7 @@ const WORKSPACE_TABS = [
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function Clients() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, role } = useAuth();
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [editClient, setEditClient] = useState<any>(null);
@@ -401,7 +401,7 @@ export default function Clients() {
                     <ScheduleTab key="schedule" client={selectedClient} shifts={clientShifts} />
                   )}
                   {activeTab === "notes" && (
-                    <NotesTab key="notes" client={selectedClient} notes={clientNotes} incidents={clientIncidents} isLoading={notesLoading} />
+                    <NotesTab key="notes" client={selectedClient} notes={clientNotes} incidents={clientIncidents} isLoading={notesLoading} role={role} />
                   )}
                   {activeTab === "documents" && (
                     <DocumentsTab key="documents" client={selectedClient} />
@@ -767,7 +767,8 @@ function ScheduleTab({ client, shifts }: any) {
 }
 
 // Notes Tab
-function NotesTab({ client, notes, incidents, isLoading }: any) {
+function NotesTab({ client, notes, incidents, isLoading, role }: any) {
+  const canReadNotes = role === "admin" || role === "manager";
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
@@ -819,29 +820,41 @@ function NotesTab({ client, notes, incidents, isLoading }: any) {
 
       <div>
         <h4 className="text-xs sm:text-sm font-bold text-slate-700 mb-3">Case Notes</h4>
-        <p className="text-[10px] sm:text-xs text-slate-400 mb-3">Visible to assigned staff, managers and admin based on note visibility.</p>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
-        ) : notes.length > 0 ? (
-          <div className="space-y-2 sm:space-y-3">
-            {notes.map((note: any) => (
-              <div key={note.id} className="bg-white rounded-xl border p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown"} size="sm" />
-                    <span className="text-xs sm:text-sm font-medium text-slate-700">{note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown"}</span>
+        {canReadNotes ? (
+          <>
+            <p className="text-[10px] sm:text-xs text-slate-400 mb-3">Visible to managers and administrators.</p>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
+            ) : notes.length > 0 ? (
+              <div className="space-y-2 sm:space-y-3">
+                {notes.map((note: any) => (
+                  <div key={note.id} className="bg-white rounded-xl border p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar name={note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown"} size="sm" />
+                        <span className="text-xs sm:text-sm font-medium text-slate-700">{note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown"}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] sm:text-xs text-slate-400 block">{new Date(note.note_date || note.created_at).toLocaleString()}</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-teal-600">{(note.category || "general").replace(/_/g, " ")}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-600">{note.content}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] sm:text-xs text-slate-400 block">{new Date(note.note_date || note.created_at).toLocaleString()}</span>
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-teal-600">{(note.category || "general").replace(/_/g, " ")}</span>
-                  </div>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-600">{note.content}</p>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400"><FileText className="h-8 w-8 mx-auto mb-2 opacity-50" /><p className="text-sm">No notes yet</p></div>
+            )}
+          </>
         ) : (
-          <div className="text-center py-8 text-slate-400"><FileText className="h-8 w-8 mx-auto mb-2 opacity-50" /><p className="text-sm">No notes yet</p></div>
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700">
+            <Lock className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="text-xs sm:text-sm font-semibold">Restricted</p>
+              <p className="text-[10px] sm:text-xs text-amber-600 mt-0.5">Past notes are only visible to managers and administrators.</p>
+            </div>
+          </div>
         )}
       </div>
     </motion.div>
