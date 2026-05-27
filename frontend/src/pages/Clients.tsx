@@ -127,14 +127,15 @@ export default function Clients() {
     enabled: !!selectedClient,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("shifts")
+        .from("timesheets")
         .select("*, staff:staff_id(first_name, last_name)")
         .eq("client_id", selectedClient.id)
-        .gte("start_time", new Date().toISOString().split("T")[0])
+        .gte("shift_date", new Date().toISOString().split("T")[0])
+        .order("shift_date")
         .order("start_time")
         .limit(50);
       if (error) {
-        console.warn("shifts query failed:", error.message);
+        console.warn("timesheets query failed:", error.message);
         return [];
       }
       return data;

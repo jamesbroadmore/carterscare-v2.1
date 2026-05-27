@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPerthGreeting, getPerthDate, formatPerthTime } from "@/lib/perth-time";
+import { DEMO_DATA } from "@/contexts/DemoContext";
 import {
   Home,
   Users,
@@ -118,7 +119,7 @@ function SectionCard({
 type NavTab = "home" | "clients" | "roster" | "checkin" | "notes";
 
 export default function WorkerHome() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<NavTab>("home");
@@ -128,48 +129,56 @@ export default function WorkerHome() {
     navigate(path);
   };
 
+  // Demo worker is always Emma Johnson (s1)
+  const demoStaff = DEMO_DATA.staff[0];
+
   // Greeting name
   const { data: workerName } = useQuery({
-    queryKey: ["worker-name", user?.id],
-    enabled: !!user,
+    queryKey: ["worker-name", user?.id, isDemoMode],
+    enabled: !!user || isDemoMode,
     queryFn: async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name, staff_id")
-        .eq("user_id", user!.id)
+      if (isDemoMode) return demoStaff.preferred_name || demoStaff.first_name;
+      if (!user) return "there";
+      const { data: staff } = await supabase
+        .from("staff")
+        .select("preferred_name, first_name")
+        .eq("user_id", user.id)
         .single();
-      if (profile?.staff_id) {
-        const { data: staff } = await supabase
-          .from("staff")
-          .select("preferred_name, first_name")
-          .eq("id", profile.staff_id)
-          .single();
-        if (staff?.preferred_name) return staff.preferred_name;
-        if (staff?.first_name) return staff.first_name;
-      }
-      return profile?.display_name || user!.email?.split("@")[0] || "there";
+      if (staff?.preferred_name) return staff.preferred_name;
+      if (staff?.first_name) return staff.first_name;
+      return user.email?.split("@")[0] || "there";
     },
   });
 
-  // Worker's staff profile
+  // Worker's staff ID
   const { data: staffProfile } = useQuery({
-    queryKey: ["worker-staff-profile", user?.id],
-    enabled: !!user,
+    queryKey: ["worker-staff-profile", user?.id, isDemoMode],
+    enabled: !!user || isDemoMode,
     queryFn: async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("staff_id")
-        .eq("user_id", user!.id)
+      if (isDemoMode) return demoStaff.id;
+      if (!user) return null;
+      const { data: staff } = await supabase
+        .from("staff")
+        .select("id")
+        .eq("user_id", user.id)
         .single();
-      return profile?.staff_id || null;
+      return staff?.id ?? null;
     },
   });
 
   // Today's and upcoming shifts for this worker
   const { data: myShifts = [] } = useQuery({
-    queryKey: ["worker-my-shifts", staffProfile],
+    queryKey: ["worker-my-shifts", staffProfile, isDemoMode],
     enabled: !!staffProfile,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.timesheets
+          .filter(t => t.staff_id === staffProfile)
+          .map(t => {
+            const client = DEMO_DATA.clients.find(c => c.id === t.client_id);
+            return { ...t, client: client ? { first_name: client.first_name, last_name: client.last_name, preferred_name: client.preferred_name } : null };
+          });
+      }
       const today = getPerthDate();
       const { data } = await supabase
         .from("timesheets")
@@ -185,9 +194,18 @@ export default function WorkerHome() {
 
   // My recent case notes
   const { data: myNotes = [] } = useQuery({
-    queryKey: ["worker-my-notes", staffProfile],
+    queryKey: ["worker-my-notes", staffProfile, isDemoMode],
     enabled: !!staffProfile,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.case_notes
+          .filter(n => n.staff_id === staffProfile)
+          .slice(0, 3)
+          .map(n => {
+            const client = DEMO_DATA.clients.find(c => c.id === n.client_id);
+            return { ...n, content: n.summary, client: client ? { first_name: client.first_name, last_name: client.last_name } : null };
+          });
+      }
       const { data } = await supabase
         .from("case_notes")
         .select("*, client:client_id(first_name, last_name)")
@@ -200,9 +218,12 @@ export default function WorkerHome() {
 
   // My compliance items
   const { data: myCompliance = [] } = useQuery({
-    queryKey: ["worker-compliance", staffProfile],
+    queryKey: ["worker-compliance", staffProfile, isDemoMode],
     enabled: !!staffProfile,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.compliance_records.filter(r => r.staff_id === staffProfile && (r.status === "expiring_soon" || r.status === "expired"));
+      }
       const { data } = await supabase
         .from("compliance_records")
         .select("*")

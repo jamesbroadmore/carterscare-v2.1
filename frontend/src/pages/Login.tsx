@@ -39,7 +39,6 @@ export default function Login() {
   const [clientTouched, setClientTouched] = useState<{ username?: boolean; accessCode?: boolean }>({});
 
   const [loading, setLoading] = useState(false);
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   // Show spinner while auth is resolving
   if (authLoading) {
@@ -276,42 +275,49 @@ export default function Login() {
 
                   <p className="text-center text-xs text-slate-400 mt-5">Contact your administrator for account access.</p>
 
-                  {/* Demo accounts */}
+                  {/* Demo accounts — always visible */}
                   <div className="mt-6 pt-5 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-                      className="w-full text-sm text-purple-600 font-medium hover:text-purple-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Users className="h-4 w-4" />
-                      {showDemoAccounts ? "Hide Demo Accounts" : "Try Demo Accounts"}
-                    </button>
-                    {showDemoAccounts && (
-                      <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <p className="text-xs text-slate-500 text-center mb-3">Click any role to explore the platform</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {DEMO_QUICK_ACCESS.map((demo) => {
-                            const Icon = demo.icon;
-                            return (
-                              <button
-                                key={demo.email}
-                                type="button"
-                                onClick={() => handleDemoLogin(demo.email)}
-                                disabled={loading}
-                                className={`p-3 rounded-xl bg-gradient-to-br ${demo.color} text-white text-left hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50`}
-                              >
-                                <Icon className="h-5 w-5 mb-1.5" />
-                                <p className="text-xs font-bold">{demo.label}</p>
-                                <p className="text-[10px] opacity-80">{demo.desc}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <p className="text-[10px] text-slate-400 text-center mt-3">
-                          Demo accounts use sample data for presentations
-                        </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="h-3.5 w-3.5 text-purple-400" />
+                      <p className="text-xs font-semibold text-slate-600">Demo Accounts</p>
+                      <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">PREVIEW</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {DEMO_QUICK_ACCESS.map((demo) => {
+                        const Icon = demo.icon;
+                        return (
+                          <button
+                            key={demo.email}
+                            type="button"
+                            onClick={() => handleDemoLogin(demo.email)}
+                            disabled={loading}
+                            className={`p-3 rounded-xl bg-gradient-to-br ${demo.color} text-white text-left hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50`}
+                          >
+                            <Icon className="h-5 w-5 mb-1.5" />
+                            <p className="text-xs font-bold">{demo.label}</p>
+                            <p className="text-[10px] opacity-80">{demo.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Credentials table */}
+                    <div className="mt-3 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden">
+                      <div className="px-3 py-2 bg-slate-100 border-b border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Login Credentials</p>
                       </div>
-                    )}
+                      <div className="divide-y divide-slate-100">
+                        {DEMO_QUICK_ACCESS.map((demo) => (
+                          <div key={demo.email} className="flex items-center justify-between px-3 py-2">
+                            <span className="text-[11px] font-semibold text-slate-600">{demo.label}</span>
+                            <span className="text-[10px] text-slate-400 font-mono truncate max-w-[160px]">{demo.email}</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between px-3 py-2 bg-purple-50">
+                          <span className="text-[11px] font-bold text-purple-700">Password (all)</span>
+                          <span className="text-[11px] font-mono font-bold text-purple-600 select-all">{DEMO_PASSWORD}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -392,15 +398,31 @@ export default function Login() {
                     <p className="text-xs text-teal-600">Your username and 6-digit access code are provided by your Carters Care coordinator.</p>
                   </div>
 
-                  {/* Demo hint */}
+                  {/* Demo credentials — always visible */}
                   <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="rounded-xl bg-teal-50 border border-teal-200 overflow-hidden">
+                      <div className="px-3 py-2 bg-teal-100 border-b border-teal-200 flex items-center gap-2">
+                        <Heart className="h-3 w-3 text-teal-600" />
+                        <p className="text-[10px] font-bold text-teal-700 uppercase tracking-wide">Demo Client Login</p>
+                        <span className="ml-auto text-[10px] bg-teal-200 text-teal-700 px-1.5 py-0.5 rounded-full font-bold">PREVIEW</span>
+                      </div>
+                      <div className="divide-y divide-teal-100">
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-[11px] font-semibold text-teal-700">Username</span>
+                          <span className="text-[11px] font-mono font-bold text-teal-600 select-all">robert.thompson</span>
+                        </div>
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-[11px] font-semibold text-teal-700">Access Code</span>
+                          <span className="text-[11px] font-mono font-bold text-teal-600 select-all tracking-widest">472819</span>
+                        </div>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => { setUsername("robert.thompson"); setAccessCode("472819"); }}
-                      className="w-full text-xs text-teal-600 font-medium hover:text-teal-700 transition-colors flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-teal-50"
+                      className="w-full mt-2 text-xs text-teal-600 font-medium hover:text-teal-700 transition-colors flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-teal-50"
                     >
-                      <Heart className="h-3.5 w-3.5" />
-                      Fill Demo Credentials
+                      ↑ Auto-fill above
                     </button>
                   </div>
                 </>

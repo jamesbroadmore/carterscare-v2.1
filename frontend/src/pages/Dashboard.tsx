@@ -8,6 +8,7 @@ import { getPerthDate, formatPerthTime } from "@/lib/perth-time";
 import { getDashboardGreeting } from "@/lib/dashboard-greetings";
 import { useNavigate, Navigate } from "react-router-dom";
 import { fullName } from "@/lib/display-names";
+import { DEMO_DATA } from "@/contexts/DemoContext";
 
 // Generate avatar initials + color from name
 function getAvatarProps(name: string) {
@@ -89,42 +90,44 @@ export default function Dashboard() {
     return <Navigate to="/worker" replace />;
   }
 
+  // ── Demo mode: use DEMO_DATA instead of hitting empty Supabase ──────────────
+  const demoGreetingName = isDemoMode ? "Sarah" : undefined;
+
   const { data: greetingName } = useQuery({
     queryKey: ["dashboard-greeting", user?.id],
-    enabled: !!user,
+    enabled: !!user && !isDemoMode,
     queryFn: async () => {
-      const { data: profile } = await supabase
-        .from("profiles").select("display_name, staff_id").eq("user_id", user!.id).single();
-      if (profile?.staff_id) {
-        const { data: staff } = await supabase.from("staff").select("preferred_name, first_name").eq("id", profile.staff_id).single();
-        if (staff?.preferred_name) return staff.preferred_name;
-        if (staff?.first_name) return staff.first_name;
-      }
-      return profile?.display_name || user!.email?.split("@")[0] || "there";
+      const { data: staff } = await supabase.from("staff").select("preferred_name, first_name").eq("user_id", user!.id).single();
+      if (staff?.preferred_name) return staff.preferred_name;
+      if (staff?.first_name) return staff.first_name;
+      return user!.email?.split("@")[0] || "there";
     },
   });
 
-  const greeting = getDashboardGreeting(greetingName ?? "there");
+  const greeting = getDashboardGreeting(demoGreetingName ?? greetingName ?? "there");
 
   const { data: staffCount = 0 } = useQuery({
-    queryKey: ["dashboard-staff-count"],
+    queryKey: ["dashboard-staff-count", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return DEMO_DATA.staff.filter(s => s.status === "active").length;
       const { count } = await supabase.from("staff").select("*", { count: "exact", head: true }).eq("status", "active");
       return count ?? 0;
     },
   });
 
   const { data: clientCount = 0 } = useQuery({
-    queryKey: ["dashboard-client-count"],
+    queryKey: ["dashboard-client-count", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return DEMO_DATA.clients.filter(c => c.status === "active").length;
       const { count } = await supabase.from("clients").select("*", { count: "exact", head: true }).eq("status", "active");
       return count ?? 0;
     },
   });
 
   const { data: todayCheckins = 0 } = useQuery({
-    queryKey: ["dashboard-checkins-today"],
+    queryKey: ["dashboard-checkins-today", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return 3; // demo: 3 workers on shift
       const today = getPerthDate();
       const { count } = await supabase.from("shift_checkins").select("*", { count: "exact", head: true }).eq("shift_date", today);
       return count ?? 0;
@@ -132,24 +135,27 @@ export default function Dashboard() {
   });
 
   const { data: openIncidents = 0 } = useQuery({
-    queryKey: ["dashboard-incidents"],
+    queryKey: ["dashboard-incidents", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return DEMO_DATA.incidents.filter(i => i.status === "investigating" || i.status === "open").length;
       const { count } = await supabase.from("incidents").select("*", { count: "exact", head: true }).in("status", ["open", "investigating"]);
       return count ?? 0;
     },
   });
 
   const { data: complianceAlerts = 0 } = useQuery({
-    queryKey: ["dashboard-compliance-alerts"],
+    queryKey: ["dashboard-compliance-alerts", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return DEMO_DATA.compliance_records.filter(r => r.status === "expiring_soon" || r.status === "expired").length;
       const { count } = await supabase.from("compliance_records").select("*", { count: "exact", head: true }).in("status", ["expiring_soon", "expired"]);
       return count ?? 0;
     },
   });
 
   const { data: todayNotes = 0 } = useQuery({
-    queryKey: ["dashboard-notes-today"],
+    queryKey: ["dashboard-notes-today", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return DEMO_DATA.case_notes.length;
       const today = getPerthDate();
       const { count } = await supabase.from("case_notes").select("*", { count: "exact", head: true }).eq("note_date", today);
       return count ?? 0;
@@ -157,8 +163,17 @@ export default function Dashboard() {
   });
 
   const { data: recentCheckins = [], isLoading: checkinsLoading } = useQuery({
-    queryKey: ["dashboard-recent-checkins"],
+    queryKey: ["dashboard-recent-checkins", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.staff.slice(0, 3).map((s, i) => ({
+          id: `demo-ci-${i}`,
+          staff_name: `${s.preferred_name || s.first_name} ${s.last_name}`,
+          client_name: DEMO_DATA.clients[i]?.preferred_name ?? DEMO_DATA.clients[i]?.first_name,
+          check_in_time: new Date(Date.now() - i * 3600000).toISOString(),
+          status: i === 0 ? "checked_in" : "checked_out",
+        }));
+      }
       const { data } = await supabase
         .from("shift_checkins")
         .select("*")
@@ -169,8 +184,22 @@ export default function Dashboard() {
   });
 
   const { data: upcomingShifts = [], isLoading: shiftsLoading } = useQuery({
-    queryKey: ["dashboard-upcoming-shifts"],
+    queryKey: ["dashboard-upcoming-shifts", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.timesheets.slice(0, 5).map((t) => {
+          const staff = DEMO_DATA.staff.find(s => s.id === t.staff_id);
+          const client = DEMO_DATA.clients.find(c => c.id === t.client_id);
+          return {
+            id: t.id,
+            shift_date: t.shift_date,
+            start_time: t.start_time,
+            end_time: t.end_time,
+            staff: staff ? { first_name: staff.first_name, last_name: staff.last_name, preferred_name: staff.preferred_name } : null,
+            client: client ? { first_name: client.first_name, last_name: client.last_name } : null,
+          };
+        });
+      }
       const today = getPerthDate();
       const { data } = await supabase
         .from("timesheets")
@@ -185,8 +214,14 @@ export default function Dashboard() {
 
   // Fetch recent clients for dashboard cards
   const { data: recentClients = [], isLoading: clientsLoading } = useQuery({
-    queryKey: ["dashboard-recent-clients"],
+    queryKey: ["dashboard-recent-clients", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.clients.filter(c => c.status === "active").map(c => ({
+          ...c,
+          created_at: new Date().toISOString(),
+        }));
+      }
       const { data } = await supabase
         .from("clients")
         .select("id, first_name, last_name, preferred_name, phone, address, status, ndis_number, funding_type")

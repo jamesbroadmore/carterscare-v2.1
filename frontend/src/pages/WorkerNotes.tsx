@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { WorkerLayout } from "@/components/WorkerLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEMO_DATA } from "@/contexts/DemoContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -260,33 +261,53 @@ function AddNoteSheet({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function WorkerNotes() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Demo worker is Emma Johnson (s1)
+  const demoStaffId = DEMO_DATA.staff[0].id;
+
   // Get this worker's staff ID
   const { data: myStaffId } = useQuery({
-    queryKey: ["my-staff-id-notes", user?.id],
-    enabled: !!user,
+    queryKey: ["my-staff-id-notes", user?.id, isDemoMode],
+    enabled: !!user || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) return demoStaffId;
+      if (!user) return null;
       const { data } = await supabase
-        .from("profiles").select("staff_id").eq("user_id", user!.id).single();
-      return data?.staff_id ?? null;
+        .from("staff").select("id").eq("user_id", user.id).single();
+      return data?.id ?? null;
     },
   });
 
   // Fetch MY notes only
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ["my-notes", myStaffId],
+    queryKey: ["my-notes", myStaffId, isDemoMode],
     enabled: !!myStaffId,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_DATA.case_notes
+          .filter(n => n.staff_id === myStaffId)
+          .map(n => {
+            const client = DEMO_DATA.clients.find(c => c.id === n.client_id);
+            return {
+              ...n,
+              note_date: n.created_at,
+              content: n.summary,
+              category: n.note_type === "daily_care" ? "general" : n.note_type === "progress" ? "skill_development" : "general",
+              is_confidential: false,
+              client: client ? { id: client.id, first_name: client.first_name, last_name: client.last_name, preferred_name: client.preferred_name } : null,
+            };
+          });
+      }
       const { data, error } = await supabase
         .from("case_notes")
         .select("*, client:client_id(id, first_name, last_name, preferred_name)")
         .eq("staff_id", myStaffId)
-        .order("note_date", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
       return data;

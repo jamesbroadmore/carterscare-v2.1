@@ -172,6 +172,7 @@ function ClientPortalUI({
   clientId: string;
   onSignOut: () => void;
 }) {
+  const { isDemoMode } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "schedule" | "notes" | "requests">("overview");
   const [requests, setRequests] = useState(initialRequests);
   const [showNewRequest, setShowNewRequest] = useState(false);
@@ -223,7 +224,9 @@ function ClientPortalUI({
               <div>
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-base font-bold text-slate-800">My Care Portal</h1>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">DEMO</span>
+                  {isDemoMode && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">DEMO</span>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500">Hello, {displayName}</p>
               </div>

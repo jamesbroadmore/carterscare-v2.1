@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { WorkerLayout } from "@/components/WorkerLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEMO_DATA } from "@/contexts/DemoContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,18 +45,19 @@ function useGps() {
 
 // ── Staff profile hook ───────────────────────────────────────────────────────
 function useMyStaff() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   return useQuery({
-    queryKey: ["worker-staff", user?.id],
-    enabled: !!user,
+    queryKey: ["worker-staff", user?.id, isDemoMode],
+    enabled: !!user || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        const s = DEMO_DATA.staff[0]; // Emma Johnson
+        return { staffId: s.id, staffName: `${s.preferred_name || s.first_name} ${s.last_name}` };
+      }
       if (!user) return null;
-      const { data: profile } = await supabase
-        .from("profiles").select("staff_id, display_name").eq("user_id", user.id).single();
-      if (!profile?.staff_id) return { staffId: null, staffName: profile?.display_name || user.email || "Unknown" };
       const { data: staff } = await supabase
-        .from("staff").select("id, first_name, last_name, preferred_name").eq("id", profile.staff_id).single();
-      if (!staff) return { staffId: profile.staff_id, staffName: profile.display_name || user.email || "Unknown" };
+        .from("staff").select("id, first_name, last_name, preferred_name").eq("user_id", user.id).single();
+      if (!staff) return { staffId: null, staffName: user.email || "Unknown" };
       return { staffId: staff.id, staffName: `${staff.preferred_name || staff.first_name} ${staff.last_name}` };
     },
   });
@@ -243,7 +245,7 @@ function ClockOutPanel({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function WorkerCheckIn() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const queryClient = useQueryClient();
   const { position, error: gpsError, loading: gpsLoading, requestLocation } = useGps();
   const { data: myStaff, isLoading: staffLoading } = useMyStaff();
@@ -256,8 +258,9 @@ export default function WorkerCheckIn() {
 
   // Client list
   const { data: clientList = [] } = useQuery({
-    queryKey: ["worker-client-list"],
+    queryKey: ["worker-client-list", isDemoMode],
     queryFn: async () => {
+      if (isDemoMode) return DEMO_DATA.clients.filter(c => c.status === "active");
       const { data } = await supabase
         .from("clients").select("id, first_name, last_name, preferred_name").eq("status", "active").order("first_name");
       return data ?? [];
