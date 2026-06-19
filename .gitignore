@@ -220,3 +220,4 @@ credentials.json
 *.pem
 *.key
 .credentials
+.git-credentials-tmp

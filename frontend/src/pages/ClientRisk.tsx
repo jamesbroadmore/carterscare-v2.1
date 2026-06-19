@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  AlertTriangle, ShieldCheck, FileText, Users, Plus, ChevronRight,
-  AlertCircle, CheckCircle, Clock, Flame, Heart, Activity,
+  AlertTriangle, ShieldCheck, FileText, Users, ChevronRight,
+  AlertCircle, CheckCircle, Clock, Flame, Heart, Activity, Edit, Save, X, Loader2,
 } from "lucide-react";
 import { SearchInput, PrimaryButton, EmptyState } from "@/components/ui-kit";
 
+// ─── Types & constants ─────────────────────────────────────────────────────────
+const RISK_LEVELS = ["low", "medium", "high", "critical"] as const;
+type RiskLevel = typeof RISK_LEVELS[number];
+
 const RISK_CATEGORIES = [
-  { key: "falls", label: "Falls Risk", icon: Activity, color: "orange" },
-  { key: "medication", label: "Medication Risk", icon: Heart, color: "red" },
-  { key: "behavior", label: "Behavioral Risk", icon: AlertTriangle, color: "purple" },
-  { key: "environmental", label: "Environmental", icon: Flame, color: "yellow" },
-  { key: "health", label: "Health Risk", icon: Activity, color: "pink" },
-  { key: "communication", label: "Communication", icon: FileText, color: "blue" },
-];
+  { key: "falls", label: "Falls Risk", icon: Activity, color: "#f97316" },
+  { key: "medication", label: "Medication Risk", icon: Heart, color: "#ef4444" },
+  { key: "behavior", label: "Behavioral Risk", icon: AlertTriangle, color: "#a855f7" },
+  { key: "environmental", label: "Environmental", icon: Flame, color: "#eab308" },
+  { key: "health", label: "Health Risk", icon: Activity, color: "#ec4899" },
+  { key: "communication", label: "Communication", icon: FileText, color: "#3b82f6" },
+] as const;
+
+type RiskCategoryKey = typeof RISK_CATEGORIES[number]["key"];
 
 const SAFETY_PLAN_SECTIONS = [
   "Emergency Contacts",
@@ -27,17 +33,218 @@ const SAFETY_PLAN_SECTIONS = [
   "Communication Protocols",
 ];
 
+type RiskData = {
+  ratings: Partial<Record<RiskCategoryKey, RiskLevel>>;
+  notes: Partial<Record<RiskCategoryKey, string>>;
+  safety: Partial<Record<string, string>>;
+  lastAssessed?: string;
+};
+
+function parseRiskData(raw: string | null): RiskData {
+  if (!raw) return { ratings: {}, notes: {}, safety: {} };
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed.__riskData) return parsed.__riskData;
+  } catch {/* plain text */}
+  return { ratings: {}, notes: {}, safety: {} };
+}
+
+function buildRiskField(existing: string | null, riskData: RiskData): string {
+  try {
+    const existingObj = existing ? JSON.parse(existing) : {};
+    return JSON.stringify({ ...existingObj, __riskData: riskData });
+  } catch {
+    return JSON.stringify({ __legacyRisk: existing, __riskData: riskData });
+  }
+}
+
+function getLevelColors(level: RiskLevel | undefined) {
+  switch (level) {
+    case "critical": return { bg: "bg-red-100", text: "text-red-700", border: "border-red-300", bar: "#ef4444" };
+    case "high": return { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300", bar: "#f97316" };
+    case "medium": return { bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-300", bar: "#eab308" };
+    case "low": return { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300", bar: "#22c55e" };
+    default: return { bg: "bg-slate-100", text: "text-slate-500", border: "border-slate-200", bar: "#94a3b8" };
+  }
+}
+
+function getOverallRisk(ratings: Partial<Record<RiskCategoryKey, RiskLevel>>): RiskLevel | "unassessed" {
+  const values = Object.values(ratings);
+  if (!values.length) return "unassessed";
+  if (values.includes("critical")) return "critical";
+  if (values.includes("high")) return "high";
+  if (values.includes("medium")) return "medium";
+  return "low";
+}
+
+// ─── Risk Category Row ─────────────────────────────────────────────────────────
+function RiskCategoryRow({
+  cat,
+  level,
+  note,
+  onSave,
+  isSaving,
+}: {
+  cat: typeof RISK_CATEGORIES[number];
+  level: RiskLevel | undefined;
+  note: string;
+  onSave: (key: RiskCategoryKey, level: RiskLevel, note: string) => void;
+  isSaving: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draftLevel, setDraftLevel] = useState<RiskLevel>(level || "low");
+  const [draftNote, setDraftNote] = useState(note);
+  const colors = getLevelColors(level);
+
+  function handleSave() {
+    onSave(cat.key, draftLevel, draftNote);
+    setEditing(false);
+  }
+
+  return (
+    <div className={`rounded-xl border p-3 transition-all ${editing ? "border-purple-300 bg-purple-50/30" : "border-border/50 bg-white"}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: cat.color + "20" }}>
+            <cat.icon className="h-3.5 w-3.5" style={{ color: cat.color }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">{cat.label}</p>
+            {!editing && note && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{note}</p>}
+            {!editing && !note && !level && <p className="text-[10px] text-muted-foreground italic">Not assessed</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {level && !editing && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${colors.bg} ${colors.text}`}>{level}</span>
+          )}
+          {!editing && (
+            <button onClick={() => { setDraftLevel(level || "low"); setDraftNote(note); setEditing(true); }}
+              className="p-1 rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-foreground transition-colors">
+              <Edit className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {editing && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-3 space-y-2">
+            {/* Level selector */}
+            <div className="flex gap-1.5 flex-wrap">
+              {RISK_LEVELS.map(lvl => {
+                const c = getLevelColors(lvl);
+                return (
+                  <button key={lvl}
+                    onClick={() => setDraftLevel(lvl)}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full capitalize border transition-all ${draftLevel === lvl ? `${c.bg} ${c.text} ${c.border} ring-1 ring-offset-1 ring-current` : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+                    {lvl}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Notes */}
+            <textarea
+              className="w-full text-xs rounded-lg border border-border/60 p-2 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none bg-white"
+              rows={2}
+              value={draftNote}
+              onChange={e => setDraftNote(e.target.value)}
+              placeholder="Add notes, strategies or observations..."
+            />
+            <div className="flex gap-2">
+              <button onClick={handleSave} disabled={isSaving}
+                className="flex items-center gap-1 text-[10px] font-semibold text-white bg-purple-500 hover:bg-purple-600 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-60">
+                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg px-2.5 py-1.5 transition-colors">
+                <X className="h-3 w-3" /> Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Safety plan section editor ────────────────────────────────────────────────
+function SafetySection({
+  label,
+  value,
+  onSave,
+  isSaving,
+}: {
+  label: string;
+  value: string;
+  onSave: (label: string, text: string) => void;
+  isSaving: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <div className={`rounded-xl border p-3 transition-all ${editing ? "border-orange-300 bg-orange-50/20" : "border-border/50 bg-white"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">{label}</p>
+            {!editing && (
+              value
+                ? <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{value}</p>
+                : <p className="text-xs text-muted-foreground italic">Not documented</p>
+            )}
+          </div>
+        </div>
+        {!editing && (
+          <button onClick={() => { setDraft(value); setEditing(true); }}
+            className="p-1 rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+            <Edit className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <AnimatePresence>
+        {editing && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-2 space-y-2">
+            <textarea
+              className="w-full text-xs rounded-lg border border-border/60 p-2 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none bg-white"
+              rows={3}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder={`Document ${label.toLowerCase()}...`}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { onSave(label, draft); setEditing(false); }} disabled={isSaving}
+                className="flex items-center gap-1 text-[10px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-60">
+                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg px-2.5 py-1.5 transition-colors">
+                <X className="h-3 w-3" /> Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
 export default function ClientRisk() {
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"assessments" | "safety">("assessments");
+  const qc = useQueryClient();
 
   const { data: clientsData = [], isLoading } = useQuery({
     queryKey: ["clients-risk"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("*")
+        .select("id, first_name, last_name, preferred_name, status, risk_assessment, updated_at")
         .order("first_name");
       if (error) throw error;
       return data;
@@ -47,169 +254,86 @@ export default function ClientRisk() {
   const filteredClients = clientsData.filter((c: any) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (
-      c.first_name?.toLowerCase().includes(q) ||
-      c.last_name?.toLowerCase().includes(q)
-    );
+    return c.first_name?.toLowerCase().includes(q) || c.last_name?.toLowerCase().includes(q);
   });
 
-  // Get risk level from client's risk_assessment field or incidents
-  const { data: clientIncidents = [] } = useQuery({
-    queryKey: ["client-incidents-risk"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("incidents")
-        .select("client_id, severity, status")
-        .in("status", ["open", "investigating"]);
+  const saveMutation = useMutation({
+    mutationFn: async ({ clientId, risk_assessment }: { clientId: string; risk_assessment: string }) => {
+      const { error } = await supabase
+        .from("clients")
+        .update({ risk_assessment, updated_at: new Date().toISOString() })
+        .eq("id", clientId);
       if (error) throw error;
-      return data || [];
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients-risk"] });
     },
   });
 
-  // Calculate real risk levels based on incidents and client data
-  const getClientRiskLevel = (clientId: string) => {
-    const client = clientsData.find((c: any) => c.id === clientId);
-    // Check for open high-severity incidents
-    const openIncidents = clientIncidents.filter((i: any) => i.client_id === clientId);
-    const hasHighSeverity = openIncidents.some((i: any) => i.severity === "high" || i.severity === "critical");
-    const hasMediumSeverity = openIncidents.some((i: any) => i.severity === "medium");
-    
-    // Also check if client has risk_assessment field
-    if (hasHighSeverity || client?.risk_assessment?.toLowerCase().includes("high")) return "high";
-    if (hasMediumSeverity || openIncidents.length > 0 || client?.risk_assessment?.toLowerCase().includes("medium")) return "medium";
-    return "low";
-  };
+  function handleSaveRating(client: any, key: RiskCategoryKey, level: RiskLevel, note: string) {
+    const rd = parseRiskData(client.risk_assessment);
+    rd.ratings[key] = level;
+    rd.notes[key] = note;
+    rd.lastAssessed = new Date().toISOString();
+    saveMutation.mutate({ clientId: client.id, risk_assessment: buildRiskField(client.risk_assessment, rd) });
+  }
 
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case "high": return { bg: "bg-red-100", text: "text-red-700", border: "border-red-200" };
-      case "medium": return { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-200" };
-      default: return { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-200" };
-    }
-  };
+  function handleSaveSafety(client: any, label: string, text: string) {
+    const rd = parseRiskData(client.risk_assessment);
+    rd.safety[label] = text;
+    rd.lastAssessed = new Date().toISOString();
+    saveMutation.mutate({ clientId: client.id, risk_assessment: buildRiskField(client.risk_assessment, rd) });
+  }
 
-  const highRiskCount = clientsData.filter((c: any) => getClientRiskLevel(c.id) === "high").length;
-  const mediumRiskCount = clientsData.filter((c: any) => getClientRiskLevel(c.id) === "medium").length;
+  // Stats
+  const clientsWithOverall = clientsData.map((c: any) => ({
+    ...c,
+    _overall: getOverallRisk(parseRiskData(c.risk_assessment).ratings),
+  }));
+  const highCount = clientsWithOverall.filter((c: any) => c._overall === "high" || c._overall === "critical").length;
+  const medCount = clientsWithOverall.filter((c: any) => c._overall === "medium").length;
+  const lowCount = clientsWithOverall.filter((c: any) => c._overall === "low").length;
 
   return (
     <AppLayout title="Risk Management & Safety">
       <div className="space-y-5">
         {/* Header Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3"
-          >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm icon-teal">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-foreground">{clientsData.length}</p>
-              <p className="text-xs text-muted-foreground">Total Clients</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3"
-          >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #f87171, #ef4444)" }}>
-              <AlertTriangle className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-foreground">{highRiskCount}</p>
-              <p className="text-xs text-muted-foreground">High Risk</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3"
-          >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm icon-orange">
-              <AlertCircle className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-foreground">{mediumRiskCount}</p>
-              <p className="text-xs text-muted-foreground">Medium Risk</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3"
-          >
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm icon-green">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-foreground">{clientsData.length}</p>
-              <p className="text-xs text-muted-foreground">Safety Plans</p>
-            </div>
-          </motion.div>
+          {[
+            { label: "Total Clients", value: clientsData.length, icon: Users, gradient: "linear-gradient(135deg, #2dd4bf, #14b8a6)" },
+            { label: "High Risk", value: highCount, icon: AlertTriangle, gradient: "linear-gradient(135deg, #f87171, #ef4444)" },
+            { label: "Medium Risk", value: medCount, icon: AlertCircle, gradient: "linear-gradient(135deg, #fb923c, #f97316)" },
+            { label: "Low Risk", value: lowCount, icon: ShieldCheck, gradient: "linear-gradient(135deg, #4ade80, #22c55e)" },
+          ].map((m, i) => (
+            <motion.div key={m.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: m.gradient }}>
+                <m.icon className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">{m.value}</p>
+                <p className="text-xs text-muted-foreground">{m.label}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("assessments")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              activeTab === "assessments"
-                ? "bg-purple-100 text-purple-700"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            Risk Assessments
-          </button>
-          <button
-            onClick={() => setActiveTab("safety")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              activeTab === "safety"
-                ? "bg-purple-100 text-purple-700"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            Safety Plans
-          </button>
+          {(["assessments", "safety"] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                activeTab === tab ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}>
+              {tab === "assessments" ? "Risk Assessments" : "Safety Plans"}
+            </button>
+          ))}
         </div>
 
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search clients..."
-            className="w-full sm:w-72"
-          />
-          <PrimaryButton variant="orange">
-            <Plus className="h-4 w-4 mr-2" />
-            New Assessment
-          </PrimaryButton>
+          <SearchInput value={search} onChange={setSearch} placeholder="Search clients..." className="w-full sm:w-72" />
         </div>
-
-        {/* Risk Categories Overview */}
-        {activeTab === "assessments" && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {RISK_CATEGORIES.map((cat) => (
-              <div
-                key={cat.key}
-                className="bg-white rounded-xl border border-border/50 p-3 flex flex-col items-center text-center"
-              >
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center mb-2 icon-${cat.color}`}>
-                  <cat.icon className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-xs font-medium text-foreground">{cat.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Clients List */}
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
@@ -218,9 +342,7 @@ export default function ClientRisk() {
               {activeTab === "assessments" ? "Client Risk Assessments" : "Client Safety Plans"}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {activeTab === "assessments" 
-                ? "View and manage risk assessments for each client" 
-                : "Manage safety plans and protocols"}
+              {activeTab === "assessments" ? "Rate each risk category and add notes" : "Document safety plans and protocols"}
             </p>
           </div>
 
@@ -229,16 +351,14 @@ export default function ClientRisk() {
               <div className="h-8 w-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filteredClients.length === 0 ? (
-            <EmptyState
-              icon={<Users className="h-10 w-10 text-slate-300" />}
-              title="No clients found"
-              description="Add clients or adjust your search."
-            />
+            <EmptyState icon={<Users className="h-10 w-10 text-slate-300" />} title="No clients found" description="Add clients or adjust your search." />
           ) : (
             <div className="divide-y divide-border/50">
               {filteredClients.map((client: any) => {
-                const riskLevel = getClientRiskLevel(client.id);
-                const riskColors = getRiskColor(riskLevel);
+                const rd = parseRiskData(client.risk_assessment);
+                const overall = getOverallRisk(rd.ratings);
+                const overallColors = getLevelColors(overall === "unassessed" ? undefined : overall);
+                const assessedCount = Object.keys(rd.ratings).length;
 
                 return (
                   <div key={client.id}>
@@ -247,10 +367,8 @@ export default function ClientRisk() {
                       className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div
-                          className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                          style={{ background: "linear-gradient(135deg, #fb923c, #f97316)" }}
-                        >
+                        <div className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                          style={{ background: "linear-gradient(135deg, #fb923c, #f97316)" }}>
                           {client.first_name?.[0]}{client.last_name?.[0]}
                         </div>
                         <div>
@@ -258,55 +376,59 @@ export default function ClientRisk() {
                             {client.preferred_name || client.first_name} {client.last_name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Last assessed 3 weeks ago
+                            {assessedCount === 0 ? "Not yet assessed" : `${assessedCount}/${RISK_CATEGORIES.length} categories rated`}
+                            {rd.lastAssessed && ` · ${new Date(rd.lastAssessed).toLocaleDateString("en-AU")}`}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${riskColors.bg} ${riskColors.text}`}>
-                          {riskLevel} Risk
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
+                          overall === "unassessed" ? "bg-slate-100 text-slate-500" : `${overallColors.bg} ${overallColors.text}`
+                        }`}>
+                          {overall === "unassessed" ? "Unassessed" : `${overall} Risk`}
                         </span>
                         <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform ${selectedClient === client.id ? "rotate-90" : ""}`} />
                       </div>
                     </button>
 
-                    {/* Expanded Content */}
-                    {selectedClient === client.id && (
-                      <div className="bg-slate-50 border-t border-border/50 p-4">
-                        {activeTab === "assessments" ? (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {RISK_CATEGORIES.map((cat) => (
-                              <div
-                                key={cat.key}
-                                className="flex items-center gap-2 p-3 rounded-xl bg-white border border-border/50"
-                              >
-                                <cat.icon className="h-4 w-4 text-slate-500" />
-                                <div className="flex-1">
-                                  <p className="text-xs font-medium text-foreground">{cat.label}</p>
-                                  <p className="text-[10px] text-muted-foreground">Not assessed</p>
-                                </div>
+                    <AnimatePresence>
+                      {selectedClient === client.id && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }} className="overflow-hidden"
+                        >
+                          <div className="bg-slate-50 border-t border-border/50 p-4">
+                            {activeTab === "assessments" ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {RISK_CATEGORIES.map(cat => (
+                                  <RiskCategoryRow
+                                    key={cat.key}
+                                    cat={cat}
+                                    level={rd.ratings[cat.key]}
+                                    note={rd.notes[cat.key] || ""}
+                                    onSave={(key, level, note) => handleSaveRating(client, key, level, note)}
+                                    isSaving={saveMutation.isPending}
+                                  />
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {SAFETY_PLAN_SECTIONS.map((section) => (
-                              <div
-                                key={section}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white border border-border/50"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                                  <p className="text-sm font-medium text-foreground">{section}</p>
-                                </div>
-                                <ChevronRight className="h-4 w-4 text-slate-400" />
+                            ) : (
+                              <div className="space-y-2">
+                                {SAFETY_PLAN_SECTIONS.map(section => (
+                                  <SafetySection
+                                    key={section}
+                                    label={section}
+                                    value={rd.safety[section] || ""}
+                                    onSave={(label, text) => handleSaveSafety(client, label, text)}
+                                    isSaving={saveMutation.isPending}
+                                  />
+                                ))}
                               </div>
-                            ))}
+                            )}
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })}
