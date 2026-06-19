@@ -85,17 +85,15 @@ export default function Dashboard() {
   const { user, isSupportWorker, isDemoMode, demoRole } = useAuth();
   const navigate = useNavigate();
 
-  // Support workers belong in the worker app, not the admin dashboard
-  if (isSupportWorker || (isDemoMode && demoRole === "support_worker")) {
-    return <Navigate to="/worker" replace />;
-  }
+  // Determine if this user should be redirected (support workers go to /worker)
+  const shouldRedirect = isSupportWorker || (isDemoMode && demoRole === "support_worker");
 
   // ── Demo mode: use DEMO_DATA instead of hitting empty Supabase ──────────────
   const demoGreetingName = isDemoMode ? "Sarah" : undefined;
 
   const { data: greetingName } = useQuery({
     queryKey: ["dashboard-greeting", user?.id],
-    enabled: !!user && !isDemoMode,
+    enabled: !!user && !isDemoMode && !shouldRedirect,
     queryFn: async () => {
       const { data: staff } = await supabase.from("staff").select("preferred_name, first_name").eq("user_id", user!.id).single();
       if (staff?.preferred_name) return staff.preferred_name;
@@ -108,6 +106,7 @@ export default function Dashboard() {
 
   const { data: staffCount = 0 } = useQuery({
     queryKey: ["dashboard-staff-count", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) return DEMO_DATA.staff.filter(s => s.status === "active").length;
       const { count } = await supabase.from("staff").select("*", { count: "exact", head: true }).eq("status", "active");
@@ -117,6 +116,7 @@ export default function Dashboard() {
 
   const { data: clientCount = 0 } = useQuery({
     queryKey: ["dashboard-client-count", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) return DEMO_DATA.clients.filter(c => c.status === "active").length;
       const { count } = await supabase.from("clients").select("*", { count: "exact", head: true }).eq("status", "active");
@@ -126,6 +126,7 @@ export default function Dashboard() {
 
   const { data: todayCheckins = 0 } = useQuery({
     queryKey: ["dashboard-checkins-today", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) return 3; // demo: 3 workers on shift
       const today = getPerthDate();
@@ -136,6 +137,7 @@ export default function Dashboard() {
 
   const { data: openIncidents = 0 } = useQuery({
     queryKey: ["dashboard-incidents", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) return DEMO_DATA.incidents.filter(i => i.status === "investigating" || i.status === "open").length;
       const { count } = await supabase.from("incidents").select("*", { count: "exact", head: true }).in("status", ["open", "investigating"]);
@@ -145,6 +147,7 @@ export default function Dashboard() {
 
   const { data: complianceAlerts = 0 } = useQuery({
     queryKey: ["dashboard-compliance-alerts", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) return DEMO_DATA.compliance_records.filter(r => r.status === "expiring_soon" || r.status === "expired").length;
       const { count } = await supabase.from("compliance_records").select("*", { count: "exact", head: true }).in("status", ["expiring_soon", "expired"]);
@@ -154,6 +157,7 @@ export default function Dashboard() {
 
   const { data: todayNotes = 0 } = useQuery({
     queryKey: ["dashboard-notes-today", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) return DEMO_DATA.case_notes.length;
       const today = getPerthDate();
@@ -164,6 +168,7 @@ export default function Dashboard() {
 
   const { data: recentCheckins = [], isLoading: checkinsLoading } = useQuery({
     queryKey: ["dashboard-recent-checkins", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) {
         return DEMO_DATA.staff.slice(0, 3).map((s, i) => ({
@@ -185,6 +190,7 @@ export default function Dashboard() {
 
   const { data: upcomingShifts = [], isLoading: shiftsLoading } = useQuery({
     queryKey: ["dashboard-upcoming-shifts", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) {
         return DEMO_DATA.timesheets.slice(0, 5).map((t) => {
@@ -215,6 +221,7 @@ export default function Dashboard() {
   // Fetch recent clients for dashboard cards
   const { data: recentClients = [], isLoading: clientsLoading } = useQuery({
     queryKey: ["dashboard-recent-clients", isDemoMode],
+    enabled: !shouldRedirect,
     queryFn: async () => {
       if (isDemoMode) {
         return DEMO_DATA.clients.filter(c => c.status === "active").map(c => ({
@@ -233,6 +240,8 @@ export default function Dashboard() {
   });
 
   const totalAlerts = openIncidents + complianceAlerts;
+
+  if (shouldRedirect) return <Navigate to="/worker" replace />;
 
   return (
     <AppLayout title="Dashboard">

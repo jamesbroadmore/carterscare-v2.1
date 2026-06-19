@@ -555,7 +555,7 @@ Just ask me anything!`;
       setMessages(prev => [...prev, { role: "assistant", content: fallbackResponse }]);
       setIsLoading(false);
     }
-  }, [messages, isLoading, securityLevel]);
+  }, [messages, isLoading, securityLevel, getRoleResponse]);
 
   // Handle navigation from quick links
   const handleLinkClick = (url: string) => {

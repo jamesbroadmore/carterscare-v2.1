@@ -496,7 +496,7 @@ function AddNoteDialog({
     setIsSubmitting(true);
     try {
       // Upload attachments first (if any)
-      let uploadedAttachments: { type: string; url: string; name: string }[] = [];
+      const uploadedAttachments: { type: string; url: string; name: string }[] = [];
       
       for (const file of attachments) {
         const fileType = file.type.startsWith("image/") ? "image" : 

@@ -215,16 +215,18 @@ function coerceValue(raw: string, col: ColDef): any {
   if (!val) return null;
 
   switch (col.type) {
-    case "number":
+    case "number": {
       const num = Number(val);
       if (isNaN(num)) throw new Error(`"${val}" is not a valid number`);
       return num;
-    case "boolean":
+    }
+    case "boolean": {
       const lower = val.toLowerCase();
       if (["true", "1", "yes", "y"].includes(lower)) return true;
       if (["false", "0", "no", "n"].includes(lower)) return false;
       throw new Error(`"${val}" is not a valid boolean`);
-    case "date":
+    }
+    case "date": {
       // Accept DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
       let dateStr = val;
       if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)) {
@@ -234,20 +236,24 @@ function coerceValue(raw: string, col: ColDef): any {
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) throw new Error(`"${val}" is not a valid date (use YYYY-MM-DD or DD/MM/YYYY)`);
       return dateStr;
-    case "timestamp":
+    }
+    case "timestamp": {
       // Try parsing as Date
       const d = new Date(val);
       if (isNaN(d.getTime())) throw new Error(`"${val}" is not a valid timestamp`);
       return d.toISOString();
-    case "uuid":
+    }
+    case "uuid": {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
         throw new Error(`"${val}" is not a valid UUID`);
       }
       return val;
-    case "text[]":
+    }
+    case "text[]": {
       // Accept comma-separated or JSON array
       if (val.startsWith("[")) return JSON.parse(val);
-      return val.split(";").map((s) => s.trim()).filter(Boolean);
+      return val.split(";").map((s: string) => s.trim()).filter(Boolean);
+    }
     default:
       return val;
   }
