@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fullName } from "@/lib/display-names";
 import { Avatar, StatusBadge, PrimaryButton, OutlineButton } from "@/components/ui-kit";
-import { NewRosterDialog } from "@/components/roster/NewRosterDialog";
 import {
   X, User, Heart, Calendar, FileText, FolderOpen, Phone, Mail, MapPin,
   AlertTriangle, Clock, Plus, ChevronLeft, ChevronRight, Edit, Save,
@@ -38,24 +37,6 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
   const [activeTab, setActiveTab] = useState("general");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
-  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-
-  // Fetch staff list for scheduling
-  const { data: staffList = [] } = useQuery({
-    queryKey: ["staff-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("staff")
-        .select("id, first_name, last_name, preferred_name")
-        .eq("status", "active")
-        .order("first_name");
-      if (error) {
-        console.warn("staff query failed:", error.message);
-        return [];
-      }
-      return data ?? [];
-    },
-  });
 
   // Fetch client notes
   const { data: notes = [], isLoading: notesLoading } = useQuery({
@@ -247,7 +228,7 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
               <CarePlanTab key="care-plan" client={client} isEditing={isEditing} />
             )}
             {activeTab === "schedule" && (
-              <ScheduleTab key="schedule" client={client} shifts={shifts} onOpenScheduleDialog={() => setShowScheduleDialog(true)} />
+              <ScheduleTab key="schedule" client={client} shifts={shifts} />
             )}
             {activeTab === "notes" && (
               <NotesTab key="notes" client={client} notes={notes} incidents={incidents} isLoading={notesLoading} />
@@ -258,16 +239,6 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
           </AnimatePresence>
         </div>
       </motion.div>
-
-      {/* Schedule Dialog */}
-      <NewRosterDialog
-        open={showScheduleDialog}
-        onClose={() => setShowScheduleDialog(false)}
-        defaultDate={new Date().toISOString().split("T")[0]}
-        defaultHour={9}
-        staffList={staffList}
-        clientList={[client]}
-      />
     </motion.div>
   );
 }
@@ -519,7 +490,7 @@ function CarePlanTab({ client, isEditing }: any) {
 }
 
 // Schedule Tab
-function ScheduleTab({ client, shifts, onOpenScheduleDialog }: any) {
+function ScheduleTab({ client, shifts }: any) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const getWeekDates = () => {
@@ -554,7 +525,7 @@ function ScheduleTab({ client, shifts, onOpenScheduleDialog }: any) {
         <h3 className="text-lg font-bold text-slate-800">Client Schedule</h3>
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-500">Time Block: 7am to 7pm</span>
-          <PrimaryButton variant="teal" className="ml-4" onClick={onOpenScheduleDialog}>
+          <PrimaryButton variant="teal" className="ml-4">
             <Plus className="h-4 w-4" /> Add Service
           </PrimaryButton>
         </div>
