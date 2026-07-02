@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fullName } from "@/lib/display-names";
 import { Avatar, StatusBadge, PrimaryButton, OutlineButton } from "@/components/ui-kit";
+import { ScheduleServiceDialog } from "@/components/ScheduleServiceDialog";
 import {
   X, User, Heart, Calendar, FileText, FolderOpen, Phone, Mail, MapPin,
   AlertTriangle, Clock, Plus, ChevronLeft, ChevronRight, Edit, Save,
@@ -37,6 +38,9 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
   const [activeTab, setActiveTab] = useState("general");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleDialogDate, setScheduleDialogDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [scheduleDialogHour, setScheduleDialogHour] = useState<number>(9);
 
   // Fetch client notes
   const { data: notes = [], isLoading: notesLoading } = useQuery({
@@ -228,7 +232,16 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
               <CarePlanTab key="care-plan" client={client} isEditing={isEditing} />
             )}
             {activeTab === "schedule" && (
-              <ScheduleTab key="schedule" client={client} shifts={shifts} />
+              <ScheduleTab
+                key="schedule"
+                client={client}
+                shifts={shifts}
+                onScheduleClick={(date: string, hour: number) => {
+                  setScheduleDialogDate(date);
+                  setScheduleDialogHour(hour);
+                  setShowScheduleDialog(true);
+                }}
+              />
             )}
             {activeTab === "notes" && (
               <NotesTab key="notes" client={client} notes={notes} incidents={incidents} isLoading={notesLoading} />
@@ -238,6 +251,15 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
             )}
           </AnimatePresence>
         </div>
+
+        <ScheduleServiceDialog
+          open={showScheduleDialog}
+          onClose={() => setShowScheduleDialog(false)}
+          clientId={client.id}
+          clientName={fullName(client)}
+          defaultDate={scheduleDialogDate}
+          defaultHour={scheduleDialogHour}
+        />
       </motion.div>
     </motion.div>
   );
@@ -490,7 +512,7 @@ function CarePlanTab({ client, isEditing }: any) {
 }
 
 // Schedule Tab
-function ScheduleTab({ client, shifts }: any) {
+function ScheduleTab({ client, shifts, onScheduleClick }: any) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const getWeekDates = () => {
@@ -525,7 +547,11 @@ function ScheduleTab({ client, shifts }: any) {
         <h3 className="text-lg font-bold text-slate-800">Client Schedule</h3>
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-500">Time Block: 7am to 7pm</span>
-          <PrimaryButton variant="teal" className="ml-4">
+          <PrimaryButton
+            variant="teal"
+            className="ml-4"
+            onClick={() => onScheduleClick(new Date().toISOString().split("T")[0], 9)}
+          >
             <Plus className="h-4 w-4" /> Add Service
           </PrimaryButton>
         </div>
@@ -612,7 +638,10 @@ function ScheduleTab({ client, shifts }: any) {
                   ))
                 ) : (
                   <div className="h-full flex items-center justify-center">
-                    <button className="text-xs text-slate-400 hover:text-teal-500 transition-colors">
+                    <button
+                      onClick={() => onScheduleClick(date.toISOString().split("T")[0], 9)}
+                      className="text-xs text-slate-400 hover:text-teal-500 transition-colors"
+                    >
                       + Add
                     </button>
                   </div>
