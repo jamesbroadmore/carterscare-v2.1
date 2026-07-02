@@ -3,31 +3,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, X, KeyRound, Eye, EyeOff } from "lucide-react";
-import { z } from "zod";
+import { Field, SelectField } from "@/components/FormFields";
+import { staffWithAccountSchema, type StaffWithAccountForm } from "@/schemas/dialogSchemas";
 
-const staffSchema = z.object({
-  first_name: z.string().trim().min(1, "First name is required").max(100),
-  last_name: z.string().trim().min(1, "Surname is required").max(100),
-  preferred_name: z.string().trim().max(100).optional(),
-  email: z.string().trim().email("Invalid email address").max(255),
-  phone: z.string().trim().max(20).optional(),
-  role: z.enum(["support_worker", "team_leader", "coordinator", "admin"]),
-  employment_type: z.enum(["full_time", "part_time", "casual", "contractor"]),
-  start_date: z.string().optional(),
-  address: z.string().trim().max(500).optional(),
-  emergency_contact_name: z.string().trim().max(100).optional(),
-  emergency_contact_phone: z.string().trim().max(20).optional(),
-  notes: z.string().trim().max(2000).optional(),
-  // User access fields
-  create_account: z.boolean(),
-  password: z.string().min(8, "Password must be at least 8 characters").optional(),
-  system_role: z.enum(["admin", "moderator", "user"]).optional(),
-}).refine((data) => {
-  if (data.create_account && !data.password) return false;
-  return true;
-}, { message: "Password is required when creating an account", path: ["password"] });
-
-type StaffForm = z.infer<typeof staffSchema>;
+type StaffForm = StaffWithAccountForm;
 
 const emptyForm: StaffForm = {
   first_name: "",
@@ -120,7 +99,7 @@ export function AddStaffDialog({ open, onClose }: AddStaffDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const result = staffSchema.safeParse(form);
+    const result = staffWithAccountSchema.safeParse(form);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
@@ -260,39 +239,4 @@ export function AddStaffDialog({ open, onClose }: AddStaffDialogProps) {
   );
 }
 
-function Field({ label, value, onChange, error, placeholder, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; error?: string; placeholder?: string; type?: string;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-300 ${error ? "border-destructive" : ""}`}
-      />
-      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
-    </div>
-  );
-}
 
-function SelectField({ label, value, onChange, options }: {
-  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-300"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}

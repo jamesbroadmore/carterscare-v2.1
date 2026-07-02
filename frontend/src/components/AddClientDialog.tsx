@@ -3,33 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, X } from "lucide-react";
-import { z } from "zod";
-
-const clientSchema = z.object({
-  first_name: z.string().trim().min(1, "First name is required").max(100),
-  last_name: z.string().trim().min(1, "Surname is required").max(100),
-  preferred_name: z.string().trim().max(100).optional(),
-  email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
-  phone: z.string().trim().max(20).optional(),
-  date_of_birth: z.string().optional(),
-  address: z.string().trim().max(500).optional(),
-  ndis_number: z.string().trim().max(20).optional(),
-  ndis_plan_start: z.string().optional(),
-  ndis_plan_end: z.string().optional(),
-  funding_type: z.enum(["ndis", "aged_care", "chsp", "hvp", "home_care", "private", "other"]).optional(),
-  primary_disability: z.string().trim().max(200).optional(),
-  support_needs: z.string().trim().max(2000).optional(),
-  emergency_contact_name: z.string().trim().max(100).optional(),
-  emergency_contact_phone: z.string().trim().max(20).optional(),
-  emergency_contact_relationship: z.string().trim().max(50).optional(),
-  notes: z.string().trim().max(2000).optional(),
-  rate_weekday: z.string().optional(),
-  rate_saturday: z.string().optional(),
-  rate_sunday: z.string().optional(),
-  rate_public_holiday: z.string().optional(),
-});
-
-type ClientForm = z.infer<typeof clientSchema>;
+import { Field, SelectField } from "@/components/FormFields";
+import { clientSchema, type ClientForm } from "@/schemas/dialogSchemas";
 
 const emptyForm: ClientForm = {
   first_name: "",
@@ -247,39 +222,4 @@ export function AddClientDialog({ open, onClose }: AddClientDialogProps) {
   );
 }
 
-function Field({ label, value, onChange, error, placeholder, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; error?: string; placeholder?: string; type?: string;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-300 ${error ? "border-destructive" : ""}`}
-      />
-      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
-    </div>
-  );
-}
 
-function SelectField({ label, value, onChange, options }: {
-  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-300"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
