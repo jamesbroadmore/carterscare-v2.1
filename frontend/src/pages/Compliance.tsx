@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { AlertTriangle, CheckCircle, XCircle, Loader2, Plus, X, Search, Shield, List, BarChart3 } from "lucide-react";
+import { AlertTriangle, CheckCircle, XCircle, Loader2, Plus, X, Search, Shield, List, BarChart3, GraduationCap, ClipboardCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,14 +11,13 @@ import { ComplianceFlagsPanel } from "@/components/compliance/ComplianceFlagsPan
 import { ServiceCategoriesPanel } from "@/components/compliance/ServiceCategoriesPanel";
 
 const RECORD_TYPES = [
-  { value: "worker_screening", label: "NDIS Worker Screening" },
-  { value: "wwcc", label: "Working with Children Check" },
-  { value: "police_check", label: "National Police Check" },
+  { value: "worker_screening", label: "NDIS Worker Screening Check / Police Certificate (<3yrs)" },
+  { value: "ndis_orientation", label: "NDIS Worker Orientation Module (Quality, Safety and You)" },
+  { value: "wwcc", label: "Working with Children Check (child-related work only)" },
   { value: "first_aid", label: "First Aid Certificate" },
   { value: "cpr", label: "CPR Certificate" },
   { value: "manual_handling", label: "Manual Handling" },
   { value: "medication", label: "Medication Administration" },
-  { value: "covid_vaccination", label: "COVID-19 Vaccination" },
   { value: "drivers_licence", label: "Driver's Licence" },
   { value: "other", label: "Other" },
 ];
@@ -37,6 +36,7 @@ function StatusBadge({ status }: { status: string }) {
 
 const TABS = [
   { key: "records", label: "Staff Records", icon: CheckCircle },
+  { key: "onboarding", label: "Onboarding Completion", icon: GraduationCap },
   { key: "flags", label: "Billing Compliance", icon: Shield },
   { key: "services", label: "Service Categories", icon: List },
 ];
@@ -92,7 +92,9 @@ export default function Compliance() {
   const alerts = records.filter((r: any) => r.status === "expiring_soon" || r.status === "expired");
 
   const staffComplianceStatus = useMemo(() => {
-    const required = ["worker_screening", "wwcc", "police_check", "first_aid", "cpr"];
+    // WWCC is intentionally excluded — it's only required for staff doing
+    // child-related work, not a blanket requirement for aged care/NDIS support workers.
+    const required = ["worker_screening", "ndis_orientation", "first_aid", "cpr"];
     return staffList.filter(s => s.status === "active").map((s) => {
       const staffRecords = records.filter((r: any) => r.staff_id === s.id);
       const missing = required.filter(
@@ -101,6 +103,65 @@ export default function Compliance() {
       return { ...s, missing, total: required.length, complete: required.length - missing.length };
     });
   }, [staffList, records]);
+
+  // Onboarding completion (tasks + mandatory policy acknowledgements) per active staff member
+  const { data: onboardingTasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ["all-onboarding-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_tasks").select("*");
+      if (error) throw error;
+      return data;
+    },
+    enabled: activeTab === "onboarding",
+  });
+
+  const { data: mandatoryPolicies = [] } = useQuery({
+    queryKey: ["mandatory-policies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policies")
+        .select("id, title")
+        .eq("status", "published")
+        .eq("requires_acknowledgement", true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: activeTab === "onboarding",
+  });
+
+  const { data: acknowledgements = [] } = useQuery({
+    queryKey: ["all-policy-acknowledgements"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("policy_acknowledgements").select("staff_id, policy_id");
+      if (error) throw error;
+      return data;
+    },
+    enabled: activeTab === "onboarding",
+  });
+
+  const staffOnboardingStatus = useMemo(() => {
+    return staffList.filter((s: any) => s.status === "active").map((s: any) => {
+      const tasks = onboardingTasks.filter((t: any) => t.staff_id === s.id);
+      const tasksDone = tasks.filter((t: any) => t.status === "completed" || t.status === "verified").length;
+      const staffAcks = acknowledgements.filter((a: any) => a.staff_id === s.id).map((a: any) => a.policy_id);
+      const policiesDone = mandatoryPolicies.filter((p: any) => staffAcks.includes(p.id)).length;
+      const totalItems = tasks.length + mandatoryPolicies.length;
+      const doneItems = tasksDone + policiesDone;
+      const outstandingTasks = tasks.filter((t: any) => t.status !== "completed" && t.status !== "verified");
+      const outstandingPolicies = mandatoryPolicies.filter((p: any) => !staffAcks.includes(p.id));
+      return {
+        ...s,
+        totalItems,
+        doneItems,
+        complete: totalItems > 0 && doneItems === totalItems,
+        hasNoTasksAssigned: tasks.length === 0,
+        outstandingTasks,
+        outstandingPolicies,
+      };
+    });
+  }, [staffList, onboardingTasks, mandatoryPolicies, acknowledgements]);
+
+  const staffNotOnboarded = staffOnboardingStatus.filter((s: any) => !s.complete);
 
   return (
     <AppLayout title="Compliance & Governance">
@@ -111,6 +172,7 @@ export default function Compliance() {
             const Icon = tab.icon;
             const gradients: Record<string, string> = {
               records: "linear-gradient(135deg, #4ade80, #22c55e)",
+              onboarding: "linear-gradient(135deg, #f472b6, #ec4899)",
               flags: "linear-gradient(135deg, #60a5fa, #3b82f6)",
               services: "linear-gradient(135deg, #a78bfa, #8b5cf6)",
             };
@@ -134,6 +196,104 @@ export default function Compliance() {
 
         {activeTab === "flags" && isAdmin && <ComplianceFlagsPanel />}
         {activeTab === "services" && isAdmin && <ServiceCategoriesPanel />}
+
+        {activeTab === "onboarding" && (
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-white border border-border/50 shadow-sm p-4 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, #f472b6, #ec4899)" }}>
+                  <ClipboardCheck className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {staffOnboardingStatus.length - staffNotOnboarded.length} / {staffOnboardingStatus.length} active staff fully onboarded
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Checklist tasks + acknowledgement of all mandatory policies (NDIS Code of Conduct, Privacy, Safeguarding, etc.)
+                  </p>
+                </div>
+              </div>
+              {staffNotOnboarded.length > 0 && (
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-destructive/10 text-destructive">
+                  {staffNotOnboarded.length} staff not yet onboarded
+                </span>
+              )}
+            </div>
+
+            {tasksLoading ? (
+              <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : staffOnboardingStatus.length === 0 ? (
+              <div className="rounded-xl bg-card p-12 shadow-card border border-border/50 text-center">
+                <p className="text-muted-foreground text-sm">No active staff found.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-card shadow-card border border-border/50 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-slate-100/80">
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Staff</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Progress</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Outstanding</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {staffOnboardingStatus.map((s: any) => (
+                        <tr key={s.id} className="border-b last:border-0 hover:bg-secondary/30 transition-colors align-top">
+                          <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{s.first_name} {s.last_name}</td>
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                            {s.hasNoTasksAssigned ? (
+                              <span className="text-destructive">No checklist assigned</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${s.complete ? "bg-success" : "bg-warning"}`}
+                                    style={{ width: `${s.totalItems > 0 ? (s.doneItems / s.totalItems) * 100 : 0}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs">{s.doneItems}/{s.totalItems}</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs max-w-sm">
+                            {s.complete ? (
+                              "—"
+                            ) : (
+                              <>
+                                {s.outstandingTasks.slice(0, 2).map((t: any) => (
+                                  <div key={t.id} className="truncate">• {t.task_name}</div>
+                                ))}
+                                {s.outstandingPolicies.slice(0, 2).map((p: any) => (
+                                  <div key={p.id} className="truncate">• Acknowledge: {p.title}</div>
+                                ))}
+                                {(s.outstandingTasks.length + s.outstandingPolicies.length) > 2 && (
+                                  <div>...and {s.outstandingTasks.length + s.outstandingPolicies.length - 2} more</div>
+                                )}
+                              </>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {s.complete ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-success/10 text-success">
+                                <CheckCircle className="h-3 w-3" /> Onboarded
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
+                                <XCircle className="h-3 w-3" /> Incomplete
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === "records" && (
           <>

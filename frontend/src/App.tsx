@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -47,7 +47,6 @@ const WorkerNotes = lazy(() => import("./pages/WorkerNotes"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const EnhancedCaseNotes = lazy(() => import("./pages/EnhancedCaseNotes"));
-const StaffOnboardingWizard = lazy(() => import("./pages/StaffOnboardingWizard"));
 const TidyUp = lazy(() => import("./pages/TidyUp"));
 
 // Configure React Query with optimized defaults
@@ -337,16 +336,8 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/staff-onboarding"
-                element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<PageLoader />}>
-                      <StaffOnboardingWizard />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
+              {/* Old wizard route redirects to the single, DB-backed onboarding flow */}
+              <Route path="/staff-onboarding" element={<Navigate to="/onboarding" replace />} />
               <Route
                 path="/tidy-up"
                 element={

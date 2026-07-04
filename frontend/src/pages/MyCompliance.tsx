@@ -10,14 +10,13 @@ import { format } from "date-fns";
 import { StatusBadge } from "@/components/ui-kit";
 
 const RECORD_TYPES = [
-  { value: "worker_screening", label: "NDIS Worker Screening" },
-  { value: "wwcc", label: "Working with Children Check" },
-  { value: "police_check", label: "National Police Check" },
+  { value: "worker_screening", label: "NDIS Worker Screening Check / Police Certificate (<3yrs)" },
+  { value: "ndis_orientation", label: "NDIS Worker Orientation Module (Quality, Safety and You)" },
+  { value: "wwcc", label: "Working with Children Check (child-related work only)" },
   { value: "first_aid", label: "First Aid Certificate" },
   { value: "cpr", label: "CPR Certificate" },
   { value: "manual_handling", label: "Manual Handling" },
   { value: "medication", label: "Medication Administration" },
-  { value: "covid_vaccination", label: "COVID-19 Vaccination" },
   { value: "drivers_licence", label: "Driver's Licence" },
   { value: "other", label: "Other" },
 ];
@@ -54,8 +53,9 @@ export default function MyCompliance() {
     enabled: !!staffId,
   });
 
-  // Required certs check
-  const required = ["worker_screening", "wwcc", "police_check", "first_aid", "cpr"];
+  // Required certs check — WWCC intentionally excluded, it's only required for
+  // staff doing child-related work, not a blanket requirement.
+  const required = ["worker_screening", "ndis_orientation", "first_aid", "cpr"];
   const missing = required.filter(
     (rt) => !records.some((r: any) => r.record_type === rt && r.status === "current")
   );

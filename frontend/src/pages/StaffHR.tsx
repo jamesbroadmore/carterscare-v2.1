@@ -14,10 +14,10 @@ import { format, addMonths } from "date-fns";
 
 const HR_DOC_TYPES = [
   { key: "contract", label: "Employment Contract", icon: FileText, color: "purple" },
-  { key: "police_check", label: "Police Check", icon: CheckCircle, color: "blue" },
-  { key: "wwcc", label: "WWCC", icon: CheckCircle, color: "teal" },
+  { key: "ndis_screening", label: "NDIS Worker Screening / Police Certificate (<3yrs)", icon: CheckCircle, color: "purple" },
+  { key: "ndis_orientation", label: "NDIS Worker Orientation Module", icon: GraduationCap, color: "green" },
+  { key: "wwcc", label: "WWCC (child-related work only)", icon: CheckCircle, color: "teal" },
   { key: "first_aid", label: "First Aid Certificate", icon: GraduationCap, color: "green" },
-  { key: "ndis_screening", label: "NDIS Worker Screening", icon: CheckCircle, color: "purple" },
   { key: "driver_license", label: "Driver's License", icon: FileText, color: "blue" },
   { key: "qualifications", label: "Qualifications", icon: GraduationCap, color: "pink" },
   { key: "visa", label: "Visa/Work Rights", icon: FileText, color: "orange" },
