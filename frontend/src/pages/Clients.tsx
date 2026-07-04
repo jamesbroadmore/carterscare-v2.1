@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { EditClientDialog } from "@/components/EditClientDialog";
+import { ScheduleServiceDialog } from "@/components/ScheduleServiceDialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fullName } from "@/lib/display-names";
@@ -35,6 +36,11 @@ export default function Clients() {
   
   // Panel collapse state - always start expanded so list is visible first
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+
+  // Schedule Service dialog state
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleDialogDate, setScheduleDialogDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [scheduleDialogHour, setScheduleDialogHour] = useState<number>(9);
 
 
 
@@ -399,7 +405,16 @@ export default function Clients() {
                     <CarePlanTab key="care-plan" client={selectedClient} />
                   )}
                   {activeTab === "schedule" && (
-                    <ScheduleTab key="schedule" client={selectedClient} shifts={clientShifts} />
+                    <ScheduleTab
+                      key="schedule"
+                      client={selectedClient}
+                      shifts={clientShifts}
+                      onScheduleClick={(date: string, hour: number) => {
+                        setScheduleDialogDate(date);
+                        setScheduleDialogHour(hour);
+                        setShowScheduleDialog(true);
+                      }}
+                    />
                   )}
                   {activeTab === "notes" && (
                     <NotesTab key="notes" client={selectedClient} notes={clientNotes} incidents={clientIncidents} isLoading={notesLoading} role={role} />
@@ -436,6 +451,16 @@ export default function Clients() {
 
       <AddClientDialog open={showAdd} onClose={() => setShowAdd(false)} />
       <EditClientDialog open={!!editClient} onClose={() => setEditClient(null)} client={editClient} />
+      {selectedClient && (
+        <ScheduleServiceDialog
+          open={showScheduleDialog}
+          onClose={() => setShowScheduleDialog(false)}
+          clientId={selectedClient.id}
+          clientName={fullName(selectedClient)}
+          defaultDate={scheduleDialogDate}
+          defaultHour={scheduleDialogHour}
+        />
+      )}
     </AppLayout>
   );
 }
@@ -651,7 +676,7 @@ function CarePlanTab({ client }: any) {
 }
 
 // Schedule Tab
-function ScheduleTab({ client, shifts }: any) {
+function ScheduleTab({ client, shifts, onScheduleClick }: any) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const getWeekDates = () => {
@@ -685,7 +710,13 @@ function ScheduleTab({ client, shifts }: any) {
             <button onClick={() => setWeekOffset(weekOffset + 1)} className="h-8 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center">→</button>
             {weekOffset !== 0 && <button onClick={() => setWeekOffset(0)} className="text-xs text-teal-600 hover:underline">Today</button>}
           </div>
-          <PrimaryButton variant="teal" className="text-xs sm:text-sm"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add Service</span></PrimaryButton>
+          <PrimaryButton
+            variant="teal"
+            className="text-xs sm:text-sm"
+            onClick={() => onScheduleClick(new Date().toISOString().split("T")[0], 9)}
+          >
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Add Service</span>
+          </PrimaryButton>
         </div>
       </div>
 
@@ -755,7 +786,12 @@ function ScheduleTab({ client, shifts }: any) {
                   </div>
                 )) : (
                   <div className="h-full flex items-center justify-center min-h-[100px]">
-                    <button className="text-xs text-slate-400 hover:text-teal-500 transition-colors">+ Add</button>
+                    <button
+                      onClick={() => onScheduleClick(date.toISOString().split("T")[0], 9)}
+                      className="text-xs text-slate-400 hover:text-teal-500 transition-colors"
+                    >
+                      + Add
+                    </button>
                   </div>
                 )}
               </div>
