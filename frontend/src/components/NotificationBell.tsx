@@ -107,11 +107,21 @@ export async function createNotification(
   }
 }
 
+export type SystemAlert = {
+  id: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
+  title: string;
+  description: string;
+  href: string;
+};
+
 // Notification Bell component for header
-export function NotificationBell() {
+export function NotificationBell({ systemAlerts = [] }: { systemAlerts?: SystemAlert[] }) {
   const [open, setOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
+  const totalCount = unreadCount + systemAlerts.length;
 
   const getIcon = (type: Notification["type"]) => {
     switch (type) {
@@ -140,9 +150,9 @@ export function NotificationBell() {
         data-testid="notification-bell"
       >
         <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
+        {totalCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {totalCount > 9 ? "9+" : totalCount}
           </span>
         )}
       </button>
@@ -184,7 +194,26 @@ export function NotificationBell() {
 
               {/* Notifications list */}
               <div className="max-h-80 overflow-y-auto scrollbar-thin">
-                {notifications.length === 0 ? (
+                {systemAlerts.length > 0 && (
+                  <div className="divide-y divide-slate-50 border-b border-slate-100">
+                    {systemAlerts.map((alert) => (
+                      <button
+                        key={alert.id}
+                        onClick={() => { navigate(alert.href); setOpen(false); }}
+                        className="w-full flex items-start gap-3 p-4 hover:bg-slate-50 transition-colors text-left"
+                      >
+                        <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${alert.iconColor}`}>
+                          <alert.icon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{alert.title}</p>
+                          <p className="text-xs text-muted-foreground">{alert.description}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {notifications.length === 0 && systemAlerts.length === 0 ? (
                   <div className="p-8 text-center">
                     <Bell className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">No notifications yet</p>

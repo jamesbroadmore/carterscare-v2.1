@@ -1,13 +1,12 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AIChatbot } from "@/components/AIChatbot";
 import { AppSidebar } from "@/components/AppSidebar";
-import { NotificationBell } from "@/components/NotificationBell";
-import { Bell, AlertTriangle, ShieldCheck, Clock, X } from "lucide-react";
+import { NotificationBell, type SystemAlert } from "@/components/NotificationBell";
+import { AlertTriangle, ShieldCheck, Clock } from "lucide-react";
 import { getPerthDate } from "@/lib/perth-time";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import cartersIcon from "@/assets/icon.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ServiceStatusBadge } from "@/components/ServiceStatus";
@@ -17,32 +16,9 @@ interface AppLayoutProps {
   title?: string;
 }
 
-interface NotificationItem {
-  id: string;
-  icon: typeof AlertTriangle;
-  iconColor: string;
-  title: string;
-  description: string;
-  href: string;
-  time?: string;
-}
-
 export function AppLayout({ children, title }: AppLayoutProps) {
-  const [notifOpen, setNotifOpen] = useState(false);
   const [maureenOpen, setMaureenOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   const { user } = useAuth();
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-    };
-    if (notifOpen) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [notifOpen]);
 
   const { data: openIncidents = 0 } = useQuery({
     queryKey: ["notif-incidents"],
@@ -69,9 +45,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     },
   });
 
-  const notifications: NotificationItem[] = [];
+  const systemAlerts: SystemAlert[] = [];
   if (openIncidents > 0) {
-    notifications.push({
+    systemAlerts.push({
       id: "incidents",
       icon: AlertTriangle,
       iconColor: "text-destructive bg-destructive/10",
@@ -81,7 +57,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     });
   }
   if (complianceAlerts > 0) {
-    notifications.push({
+    systemAlerts.push({
       id: "compliance",
       icon: ShieldCheck,
       iconColor: "text-warning bg-warning/10",
@@ -91,7 +67,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
     });
   }
   if (activeCheckins > 0) {
-    notifications.push({
+    systemAlerts.push({
       id: "checkins",
       icon: Clock,
       iconColor: "text-primary bg-primary/10",
@@ -140,61 +116,8 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               {/* Service Status */}
               <ServiceStatusBadge size="sm" showLabel={false} />
 
-              {/* User Notifications (approvals, etc.) */}
-              <NotificationBell />
-
-              {/* System Notification Bell */}
-              <div className="relative" ref={panelRef}>
-                <button
-                  onClick={() => setNotifOpen(!notifOpen)}
-                  className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors relative"
-                >
-                  <Bell className="h-4 w-4" />
-                  {totalAlerts > 0 && (
-                    <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-destructive text-[9px] font-bold text-white flex items-center justify-center leading-none">
-                      {totalAlerts > 9 ? "9+" : totalAlerts}
-                    </span>
-                  )}
-                </button>
-
-                {notifOpen && (
-                  <div className="absolute right-0 top-10 w-80 rounded-2xl bg-white shadow-xl border border-border z-50 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
-                      <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
-                      <button onClick={() => setNotifOpen(false)} className="text-muted-foreground hover:text-foreground h-6 w-6 rounded-lg hover:bg-secondary flex items-center justify-center">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    {notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center">
-                        <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-2">
-                          <ShieldCheck className="h-5 w-5 text-success" />
-                        </div>
-                        <p className="text-sm font-medium text-foreground">All clear!</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">No alerts right now.</p>
-                      </div>
-                    ) : (
-                      <div className="max-h-72 overflow-y-auto divide-y divide-border/40">
-                        {notifications.map((n) => (
-                          <button
-                            key={n.id}
-                            onClick={() => { setNotifOpen(false); navigate(n.href); }}
-                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors text-left"
-                          >
-                            <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${n.iconColor}`}>
-                              <n.icon className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{n.title}</p>
-                              <p className="text-xs text-muted-foreground">{n.description}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {/* Notifications (approvals, system alerts) */}
+              <NotificationBell systemAlerts={systemAlerts} />
 
               {/* User Avatar */}
               <div
