@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { Plus, CheckCircle, XCircle, Loader2, MoreHorizontal, Pencil, Users } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Loader2, MoreHorizontal, Pencil, Trash2, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,22 +25,22 @@ export default function Staff() {
     },
   });
 
-  const deactivateMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("staff").update({ status: "inactive" }).eq("id", id);
+      const { error } = await supabase.from("staff").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Staff member deactivated; history was preserved");
+      toast.success("Staff member removed");
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-staff-count"] });
     },
-    onError: () => toast.error("We could not update this staff member. Please try again."),
+    onError: (err: Error) => toast.error(err.message),
   });
 
-  const handleDeactivate = (staff: any) => {
-    if (confirm(`Deactivate ${staff.first_name} ${staff.last_name}? They will not be assignable to new shifts.`)) {
-      deactivateMutation.mutate(staff.id);
+  const handleDelete = (staff: any) => {
+    if (confirm(`Remove ${staff.first_name} ${staff.last_name}?`)) {
+      deleteMutation.mutate(staff.id);
     }
     setMenuOpen(null);
   };
@@ -155,7 +155,7 @@ export default function Staff() {
                         onToggle={() => setMenuOpen(menuOpen === s.id ? null : s.id)}
                         onClose={() => setMenuOpen(null)}
                         onEdit={() => { setEditStaff(s); setMenuOpen(null); }}
-                        onDeactivate={() => handleDeactivate(s)}
+                        onDelete={() => handleDelete(s)}
                       />
                     </Td>
                   </tr>
@@ -169,8 +169,8 @@ export default function Staff() {
   );
 }
 
-function ActionMenu({ open, onToggle, onClose, onEdit, onDeactivate }: {
-  open: boolean; onToggle: () => void; onClose: () => void; onEdit: () => void; onDeactivate: () => void;
+function ActionMenu({ open, onToggle, onClose, onEdit, onDelete }: {
+  open: boolean; onToggle: () => void; onClose: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -200,10 +200,10 @@ function ActionMenu({ open, onToggle, onClose, onEdit, onDeactivate }: {
             <Pencil className="h-3.5 w-3.5 text-purple-500" /> Edit
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onDeactivate(); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
-            <XCircle className="h-3.5 w-3.5" /> Deactivate
+            <Trash2 className="h-3.5 w-3.5" /> Delete
           </button>
         </div>
       )}

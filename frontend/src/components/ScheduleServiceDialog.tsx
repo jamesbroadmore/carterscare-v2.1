@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { perthToISO } from "@/lib/perth-time";
 import { fullName } from "@/lib/display-names";
 import { PrimaryButton } from "@/components/ui-kit";
-import { getClientReadiness, getStaffReadiness } from "@/lib/compliance-gates";
 
 interface ServiceEntry {
   id: string;
@@ -23,7 +22,6 @@ interface ScheduleServiceDialogProps {
   onClose: () => void;
   clientId: string;
   clientName: string;
-  client: Record<string, unknown>;
   defaultDate?: string;
   defaultHour?: number;
 }
@@ -42,7 +40,6 @@ export function ScheduleServiceDialog({
   onClose,
   clientId,
   clientName,
-  client,
   defaultDate = new Date().toISOString().split("T")[0],
   defaultHour = 9,
 }: ScheduleServiceDialogProps) {
@@ -55,18 +52,9 @@ export function ScheduleServiceDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("staff")
-        .select("*")
+        .select("id, first_name, last_name, preferred_name")
         .eq("status", "active")
         .order("first_name");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: complianceRecords = [] } = useQuery({
-    queryKey: ["staff-compliance-for-scheduling"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("compliance_records").select("staff_id, record_type, status");
       if (error) throw error;
       return data || [];
     },
@@ -78,14 +66,6 @@ export function ScheduleServiceDialog({
 
   const mutation = useMutation({
     mutationFn: async (shifts: ServiceEntry[]) => {
-      const clientReadiness = getClientReadiness(client);
-      if (!clientReadiness.eligible) throw new Error(clientReadiness.reasons.join("; "));
-      for (const shift of shifts) {
-        const worker = staffList.find((staff: any) => staff.id === shift.staffId);
-        const workerRecords = complianceRecords.filter((record: any) => record.staff_id === shift.staffId);
-        const staffReadiness = getStaffReadiness(worker, workerRecords);
-        if (!staffReadiness.eligible) throw new Error(staffReadiness.reasons.join("; "));
-      }
       const rows = shifts.map((s) => ({
         staff_id: s.staffId,
         client_id: clientId,

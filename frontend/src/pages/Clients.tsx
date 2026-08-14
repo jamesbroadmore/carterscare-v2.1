@@ -42,7 +42,9 @@ export default function Clients() {
   const { data: clientsData = [], isLoading } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
+      console.log("[v0] clients query starting");
       const { data, error } = await supabase.from("clients").select("*").order("first_name");
+      console.log("[v0] clients query result:", { count: data?.length, error: error?.message, code: error?.code });
       if (error) throw error;
       return data;
     },
