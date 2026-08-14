@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fullName } from "@/lib/display-names";
 import { Avatar, StatusBadge, PrimaryButton, OutlineButton } from "@/components/ui-kit";
 import { ScheduleServiceDialog } from "@/components/ScheduleServiceDialog";
+import { getClientReadiness, readinessLabel } from "@/lib/compliance-gates";
 import {
   X, User, Heart, Calendar, FileText, FolderOpen, Phone, Mail, MapPin,
   AlertTriangle, Clock, Plus, ChevronLeft, ChevronRight, Edit, Save,
@@ -35,6 +36,7 @@ interface ClientWorkspaceProps {
 export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: ClientWorkspaceProps) {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const clientReadiness = getClientReadiness(client);
   const [activeTab, setActiveTab] = useState("general");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
@@ -124,6 +126,29 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
     saveMutation.mutate(rest);
   };
 
+  const deactivateMutation = useMutation({
+    mutationFn: async (reason: string) => {
+      const auditNote = `[Deactivated ${new Date().toLocaleDateString("en-AU")}] ${reason}`;
+      const notes = [client.notes, auditNote].filter(Boolean).join("\n");
+      const { error } = await supabase.from("clients").update({ status: "inactive", notes }).eq("id", client.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Recipient deactivated; historical records remain available");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      onClose();
+    },
+    onError: () => toast.error("We could not deactivate this recipient. Please try again."),
+  });
+
+  const handleDeactivate = () => {
+    const reason = window.prompt("Reason for deactivation (required):");
+    if (!reason?.trim()) return;
+    if (window.confirm(`Deactivate ${fullName(client)}? Future shifts will be blocked.`)) {
+      deactivateMutation.mutate(reason.trim());
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -150,10 +175,22 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
                 <div className="flex items-center gap-3 mt-1 text-sm text-white/80">
                   {client.ndis_number && <span>NDIS: {client.ndis_number}</span>}
                   <StatusBadge status={client.status} />
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${clientReadiness.eligible ? "bg-white/20" : "bg-amber-100 text-amber-900"}`}>
+                    {readinessLabel(clientReadiness)}
+                  </span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdmin && !isEditing && client.status === "active" && (
+                <button
+                  onClick={handleDeactivate}
+                  disabled={deactivateMutation.isPending}
+                  className="h-9 px-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-white text-sm font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Shield className="h-4 w-4" /> Deactivate
+                </button>
+              )}
               {isAdmin && !isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
@@ -257,6 +294,7 @@ export function ClientWorkspaceCard({ client, onClose, assignedStaff = [] }: Cli
           onClose={() => setShowScheduleDialog(false)}
           clientId={client.id}
           clientName={fullName(client)}
+          client={client}
           defaultDate={scheduleDialogDate}
           defaultHour={scheduleDialogHour}
         />

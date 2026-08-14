@@ -79,7 +79,7 @@ const navGroups: NavGroup[] = [
       { title: "Full Roster", url: "/roster", icon: CalendarDays, requiredRole: "manager", iconClass: "icon-orange" },
       { title: "Timesheets", url: "/timesheets", icon: Clock, requiredRole: "manager", iconClass: "icon-yellow" },
       { title: "Staff", url: "/staff", icon: Users, requiredRole: "manager", iconClass: "icon-blue" },
-
+      { title: "Backup Forms", url: "/backup-forms", icon: FileText, requiredRole: "manager", iconClass: "icon-teal" },
     ],
   },
   {
