@@ -41,6 +41,7 @@ const MyRoster = lazy(() => import("./pages/MyRoster"));
 const MyTimesheets = lazy(() => import("./pages/MyTimesheets"));
 const WorkerCheckIn = lazy(() => import("./pages/WorkerCheckIn"));
 const WorkerNotes = lazy(() => import("./pages/WorkerNotes"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 
 // New pages - Platform upgrades
 
@@ -405,6 +406,17 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>
                       <WorkerNotes />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <Notifications />
                     </Suspense>
                   </ProtectedRoute>
                 }
