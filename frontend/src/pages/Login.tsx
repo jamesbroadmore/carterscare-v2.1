@@ -11,7 +11,7 @@ import cartersLogo from "@/assets/Carters-Logo.png";
 import cartersIcon from "@/assets/icon.png";
 import { DEMO_PASSWORD } from "@/contexts/DemoContext";
 
-const DEMO_MODE_ENABLED = import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
+const DEMO_MODE_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
 const DEMO_QUICK_ACCESS = [
   { email: "demo@admin.carterscare.com", label: "Admin", icon: Shield, color: "from-purple-500 to-violet-500", desc: "Full platform access" },
   { email: "demo@manager.carterscare.com", label: "Manager", icon: Users, color: "from-blue-500 to-cyan-500", desc: "Team management" },
@@ -276,6 +276,36 @@ export default function Login() {
                   </form>
 
                   <p className="text-center text-xs text-slate-400 mt-5">Contact your administrator for account access.</p>
+
+                  {DEMO_MODE_ENABLED && (
+                    <div className="mt-6 border-t border-slate-100 pt-5">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Demo access</p>
+                        <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">PREVIEW</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {DEMO_QUICK_ACCESS.filter((demo) => demo.label !== "Client").map((demo) => {
+                          const Icon = demo.icon;
+                          return (
+                            <button
+                              key={demo.email}
+                              type="button"
+                              onClick={() => handleDemoLogin(demo.email)}
+                              disabled={loading}
+                              className="flex min-h-16 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-purple-300 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Icon className="h-4 w-4 shrink-0 text-purple-600" />
+                              <span>
+                                <span className="block text-xs font-bold text-slate-700">{demo.label}</span>
+                                <span className="block text-[10px] text-slate-500">{demo.desc}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-3 text-center text-[11px] text-slate-400">All demo accounts use the configured preview password.</p>
+                    </div>
+                  )}
                 </>)}
 
               {/* ---- CLIENT PORTAL LOGIN ---- */}
