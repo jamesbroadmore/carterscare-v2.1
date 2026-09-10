@@ -11,6 +11,7 @@ import cartersLogo from "@/assets/Carters-Logo.png";
 import cartersIcon from "@/assets/icon.png";
 import { DEMO_PASSWORD } from "@/contexts/DemoContext";
 
+const DEMO_MODE_ENABLED = import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
 const DEMO_QUICK_ACCESS = [
   { email: "demo@admin.carterscare.com", label: "Admin", icon: Shield, color: "from-purple-500 to-violet-500", desc: "Full platform access" },
   { email: "demo@manager.carterscare.com", label: "Manager", icon: Users, color: "from-blue-500 to-cyan-500", desc: "Team management" },
@@ -89,6 +90,7 @@ export default function Login() {
   };
 
   const handleDemoLogin = async (demoEmail: string) => {
+    if (!DEMO_MODE_ENABLED) return;
     setLoading(true);
     try {
       const redirectTo = await signIn(demoEmail, DEMO_PASSWORD);
@@ -274,53 +276,7 @@ export default function Login() {
                   </form>
 
                   <p className="text-center text-xs text-slate-400 mt-5">Contact your administrator for account access.</p>
-
-                  {/* Demo accounts — always visible */}
-                  <div className="mt-6 pt-5 border-t border-slate-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Users className="h-3.5 w-3.5 text-purple-400" />
-                      <p className="text-xs font-semibold text-slate-600">Demo Accounts</p>
-                      <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">PREVIEW</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {DEMO_QUICK_ACCESS.map((demo) => {
-                        const Icon = demo.icon;
-                        return (
-                          <button
-                            key={demo.email}
-                            type="button"
-                            onClick={() => handleDemoLogin(demo.email)}
-                            disabled={loading}
-                            className={`p-3 rounded-xl bg-gradient-to-br ${demo.color} text-white text-left hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50`}
-                          >
-                            <Icon className="h-5 w-5 mb-1.5" />
-                            <p className="text-xs font-bold">{demo.label}</p>
-                            <p className="text-[10px] opacity-80">{demo.desc}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {/* Credentials table */}
-                    <div className="mt-3 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden">
-                      <div className="px-3 py-2 bg-slate-100 border-b border-slate-200">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Login Credentials</p>
-                      </div>
-                      <div className="divide-y divide-slate-100">
-                        {DEMO_QUICK_ACCESS.map((demo) => (
-                          <div key={demo.email} className="flex items-center justify-between px-3 py-2">
-                            <span className="text-[11px] font-semibold text-slate-600">{demo.label}</span>
-                            <span className="text-[10px] text-slate-400 font-mono truncate max-w-[160px]">{demo.email}</span>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between px-3 py-2 bg-purple-50">
-                          <span className="text-[11px] font-bold text-purple-700">Password (all)</span>
-                          <span className="text-[11px] font-mono font-bold text-purple-600 select-all">{DEMO_PASSWORD}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+                </>)}
 
               {/* ---- CLIENT PORTAL LOGIN ---- */}
               {loginTab === "client" && (
@@ -398,8 +354,7 @@ export default function Login() {
                     <p className="text-xs text-teal-600">Your username and 6-digit access code are provided by your Carters Care coordinator.</p>
                   </div>
 
-                  {/* Demo credentials — always visible */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
+                  {DEMO_MODE_ENABLED && <div className="mt-4 pt-4 border-t border-slate-100">
                     <div className="rounded-xl bg-teal-50 border border-teal-200 overflow-hidden">
                       <div className="px-3 py-2 bg-teal-100 border-b border-teal-200 flex items-center gap-2">
                         <Heart className="h-3 w-3 text-teal-600" />
@@ -424,7 +379,7 @@ export default function Login() {
                     >
                       ↑ Auto-fill above
                     </button>
-                  </div>
+                  </div>}
                 </>
               )}
             </div>

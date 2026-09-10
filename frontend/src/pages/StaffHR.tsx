@@ -299,7 +299,7 @@ export default function StaffHR() {
                                       <>
                                         {existingDoc.document_url && (
                                           <button
-                                            onClick={() => window.open(existingDoc.document_url, "_blank")}
+                                            onClick={() => window.open(existingDoc.document_url, "_blank", "noopener,noreferrer")}
                                             className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-white/80 transition-colors"
                                             title="View Document"
                                           >

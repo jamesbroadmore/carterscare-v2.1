@@ -15,7 +15,7 @@ export function ProtectedRoute({
   managerOnly = false,
   allowWorker = false,
 }: ProtectedRouteProps) {
-  const { session, loading, isAdmin, isManager, isSupportWorker, role, isDemoMode, demoRole, clientPortalSession } = useAuth();
+  const { session, loading, authError, isAdmin, isManager, isSupportWorker, role, isDemoMode, demoRole, clientPortalSession } = useAuth();
 
   if (loading) {
     return (
@@ -39,7 +39,17 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  // Wait for role to load
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="max-w-md rounded-2xl border border-destructive/20 bg-card p-6 text-center shadow-sm">
+          <h1 className="text-lg font-semibold text-foreground">Access could not be verified</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{authError}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (role === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

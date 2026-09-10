@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, type DemoRole } from "./DemoContext";
 
+const DEMO_MODE_ENABLED = import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
+
 // Security clearance levels: support_worker < manager < admin
 type AppRole = "admin" | "manager" | "support_worker";
 
@@ -17,6 +19,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  authError: string | null;
   role: AppRole | null;
   isAdmin: boolean;
   isManager: boolean;
@@ -38,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoRole, setDemoRole] = useState<DemoRole | null>(null);
   const [clientPortalSession, setClientPortalSession] = useState<ClientPortalSession | null>(null);
@@ -62,8 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const staffRole = staffData?.role;
         if (staffRole === "admin") { setRole("admin"); return; }
         if (staffRole === "manager" || staffRole === "moderator") { setRole("manager"); return; }
-        // Final fallback — default to admin for the primary account
-        setRole("admin");
+        setRole(null);
+        setAuthError("Your account role could not be verified. Please contact an administrator.");
         return;
       }
       const rawRole = data?.role;
@@ -74,19 +78,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setRole("support_worker");
       }
-    } catch (err) {
-      console.error("[Auth] fetchRole crashed:", err);
-      // Never leave role as null — default to support_worker so the app doesn't hang
-      setRole("support_worker");
+    } catch {
+      setRole(null);
+      setAuthError("Your account role could not be verified. Please contact an administrator.");
     }
   };
 
   // Restore sessions on mount
   useEffect(() => {
     // Check for demo session first
-    const savedDemoMode = localStorage.getItem("demo_mode");
-    const savedDemoUser = localStorage.getItem("demo_user");
-    if (savedDemoMode === "true" && savedDemoUser) {
+    const savedDemoMode = DEMO_MODE_ENABLED ? localStorage.getItem("demo_mode") : null;
+    const savedDemoUser = DEMO_MODE_ENABLED ? localStorage.getItem("demo_user") : null;
+    if (DEMO_MODE_ENABLED && savedDemoMode === "true" && savedDemoUser) {
       try {
         const demoUser = JSON.parse(savedDemoUser);
         setIsDemoMode(true);
@@ -104,18 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Check for client portal session
-    const savedClientSession = localStorage.getItem("client_portal_session");
-    if (savedClientSession) {
-      try {
-        setClientPortalSession(JSON.parse(savedClientSession));
-        setLoading(false);
-        resolvedRef.current = true;
-        return;
-      } catch {
-        localStorage.removeItem("client_portal_session");
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -154,8 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** Returns the redirect path for the caller to navigate to */
   const signIn = async (email: string, password: string): Promise<string> => {
-    const demoAccount = DEMO_ACCOUNTS[email.toLowerCase()];
-    if (demoAccount && password === DEMO_PASSWORD) {
+    const demoAccount = DEMO_MODE_ENABLED ? DEMO_ACCOUNTS[email.toLowerCase()] : undefined;
+    if (DEMO_MODE_ENABLED && demoAccount && password === DEMO_PASSWORD) {
       setIsDemoMode(true);
       setDemoRole(demoAccount.role);
 
@@ -188,47 +179,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return "/";
   };
 
-  const signInClientPortal = async (username: string, accessCode: string): Promise<void> => {
-    // Demo client portal credentials
-    const DEMO_CLIENT_USERNAME = "robert.thompson";
-    const DEMO_CLIENT_ACCESS_CODE = "472819";
-
-    if (username.toLowerCase().trim() === DEMO_CLIENT_USERNAME && accessCode.trim() === DEMO_CLIENT_ACCESS_CODE) {
-      const portalSession: ClientPortalSession = {
-        client_id: "c1",
-        username: DEMO_CLIENT_USERNAME,
-        display_name: "Robert Thompson",
-      };
-      setClientPortalSession(portalSession);
-      localStorage.setItem("client_portal_session", JSON.stringify(portalSession));
-      return;
-    }
-
-    // Real Supabase lookup — match by email (portal_username/access_code columns not in schema)
-    const { data, error } = await supabase
-      .from("clients")
-      .select("id, first_name, last_name, email")
-      .eq("email", username.toLowerCase().trim())
-      .single();
-
-    if (error || !data) throw new Error("Invalid username or access code");
-    // For now accept any access code for real clients — proper portal auth can be added later
-    if (!accessCode.trim()) throw new Error("Access code is required");
-
-    const portalSession: ClientPortalSession = {
-      client_id: data.id,
-      username: data.email ?? username,
-      display_name: `${data.first_name} ${data.last_name}`,
-    };
-    setClientPortalSession(portalSession);
-    localStorage.setItem("client_portal_session", JSON.stringify(portalSession));
+  const signInClientPortal = async (_username: string, _accessCode: string): Promise<void> => {
+    throw new Error("Client portal sign-in is not available until secure portal authentication is configured.");
   };
 
   const signOut = async () => {
-    // Clear client portal session
     if (clientPortalSession) {
       setClientPortalSession(null);
-      localStorage.removeItem("client_portal_session");
       return;
     }
 
@@ -271,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session: effectiveSession,
       user: effectiveUser,
       loading,
+      authError,
       role,
       isAdmin,
       isManager,

@@ -25,6 +25,11 @@ export default function Notifications() {
     },
   });
   const unread = useMemo(() => notifications.filter((item) => !item.read), [notifications]);
+  const isSafeInternalLink = (link: unknown): link is string => typeof link === "string" && link.startsWith("/") && !link.startsWith("//");
+  const formatNotificationTime = (value: unknown) => {
+    const date = new Date(String(value));
+    return Number.isNaN(date.getTime()) ? "Date unavailable" : formatDistanceToNow(date, { addSuffix: true });
+  };
   const markAllRead = useMutation({
     mutationFn: async () => {
       if (!user?.id || unread.length === 0) return;
@@ -61,13 +66,21 @@ export default function Notifications() {
           {isError && <div className="p-12 text-center text-sm text-red-600">Notifications could not be loaded. Please refresh and try again.</div>}
           {!isLoading && !isError && notifications.length === 0 && <div className="flex flex-col items-center gap-3 p-12 text-center"><Bell className="h-8 w-8 text-slate-300" /><p className="font-semibold text-slate-700">You&apos;re all caught up</p><p className="text-sm text-slate-500">New shift, compliance, and timesheet updates will appear here.</p></div>}
           {!isLoading && !isError && notifications.map((notification) => (
-            <button key={notification.id} onClick={() => notification.link && navigate(notification.link)} className={`block w-full border-b border-slate-100 p-5 text-left last:border-0 hover:bg-slate-50 ${!notification.read ? "bg-purple-50/50" : ""}`}>
+            <div key={notification.id} className={`border-b border-slate-100 p-5 last:border-0 ${!notification.read ? "bg-purple-50/50" : ""}`}>
+              <button
+                type="button"
+                disabled={!isSafeInternalLink(notification.link)}
+                onClick={() => isSafeInternalLink(notification.link) && navigate(notification.link)}
+                className={`block w-full text-left ${isSafeInternalLink(notification.link) ? "hover:bg-slate-50" : "cursor-default"}`}
+                aria-label={isSafeInternalLink(notification.link) ? `Open ${notification.title}` : undefined}
+              >
               <div className="flex items-start gap-3">
                 <Bell className={`mt-0.5 h-5 w-5 shrink-0 ${!notification.read ? "text-purple-600" : "text-slate-400"}`} />
-                <div className="min-w-0 flex-1"><p className={`text-sm ${!notification.read ? "font-semibold text-slate-900" : "text-slate-700"}`}>{notification.title}</p><p className="mt-1 text-sm text-slate-600">{notification.message}</p><p className="mt-2 text-xs text-slate-400">{formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}</p></div>
+                <div className="min-w-0 flex-1"><p className={`text-sm ${!notification.read ? "font-semibold text-slate-900" : "text-slate-700"}`}>{notification.title}</p><p className="mt-1 text-sm text-slate-600">{notification.message}</p><p className="mt-2 text-xs text-slate-400">{formatNotificationTime(notification.created_at)}</p></div>
                 {!notification.read && <span className="mt-1 h-2 w-2 rounded-full bg-purple-600" aria-label="Unread" />}
               </div>
-            </button>
+              </button>
+            </div>
           ))}
         </section>
       </div>

@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+const DEMO_MODE_ENABLED = import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
+
 // Demo account for sales presentations
 // Role hierarchy: client < support_worker < manager < admin
 export type DemoRole = "admin" | "manager" | "support_worker" | "client";
@@ -107,7 +109,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const enableDemoMode = (email: string): boolean => {
     const user = DEMO_ACCOUNTS[email.toLowerCase()];
-    if (user) {
+    if (DEMO_MODE_ENABLED && user) {
       setIsDemoMode(true);
       setDemoUser(user);
       localStorage.setItem("demo_mode", "true");
@@ -130,9 +132,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   // Restore demo session on mount
   useEffect(() => {
-    const savedMode = localStorage.getItem("demo_mode");
-    const savedUser = localStorage.getItem("demo_user");
-    if (savedMode === "true" && savedUser) {
+    const savedMode = DEMO_MODE_ENABLED ? localStorage.getItem("demo_mode") : null;
+    const savedUser = DEMO_MODE_ENABLED ? localStorage.getItem("demo_user") : null;
+    if (DEMO_MODE_ENABLED && savedMode === "true" && savedUser) {
       try {
         setIsDemoMode(true);
         setDemoUser(JSON.parse(savedUser));
